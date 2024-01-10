@@ -1,9 +1,9 @@
 pub use board::Piece;
+pub use game::Game;
 use serde::{Deserialize, Serialize};
-pub use state::State;
 
 mod board;
-mod state;
+mod game;
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PlaceError {

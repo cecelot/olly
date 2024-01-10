@@ -36,7 +36,7 @@ impl Not for Piece {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub(super) struct Board(Vec<Option<Piece>>);
 
 impl Board {
@@ -74,76 +74,36 @@ impl Board {
             .any(|(x, y)| self[(x, y)].is_some()))
     }
 
-    pub fn flips(&self, x: usize, y: usize, piece: Piece) -> usize {
+    pub fn flip(&mut self, x: usize, y: usize, piece: Piece, update: bool) -> usize {
         // Calling code ensures that x and y are within bounds.
         assert!(x < Self::width() && y < Self::width());
-        let mut count = 0;
+        let mut flips = 0;
         let x = i8::try_from(x).unwrap();
         let y = i8::try_from(y).unwrap();
         for (dx, dy) in DIRECTIONS {
             if self.on((x, y), (dx, dy), piece) {
-                self.walk((x, y), (dx, dy), piece, |_, _| count += 1);
-            }
-        }
-        count
-    }
-
-    pub fn flip(&mut self, x: usize, y: usize, piece: Piece) {
-        // Calling code ensures that x and y are within bounds.
-        assert!(x < Self::width() && y < Self::width());
-        let x = i8::try_from(x).unwrap();
-        let y = i8::try_from(y).unwrap();
-        for (dx, dy) in DIRECTIONS {
-            if self.on((x, y), (dx, dy), piece) {
-                self.walk_mut((x, y), (dx, dy), piece, |board, cur| {
-                    board[cur] = Some(piece);
-                });
-            }
-        }
-    }
-
-    // TODO: fix duplication
-    fn walk<R, F>(&self, (x, y): (i8, i8), (dx, dy): (&i8, &i8), piece: Piece, mut f: F)
-    where
-        F: FnMut(&Self, (usize, usize)) -> R,
-    {
-        let opponent = !piece;
-        let mut x = x + dx;
-        let mut y = y + dy;
-        while x >= 0 && y >= 0 && x < WIDTH && y < WIDTH {
-            let cur = (usize::try_from(x).unwrap(), usize::try_from(y).unwrap());
-            match self[cur] {
-                Some(p) if p == opponent => {
-                    f(self, cur);
-                    x += dx;
-                    y += dy;
+                let opponent = !piece;
+                let mut x = x + dx;
+                let mut y = y + dy;
+                while x >= 0 && y >= 0 && x < WIDTH && y < WIDTH {
+                    let cur = (usize::try_from(x).unwrap(), usize::try_from(y).unwrap());
+                    match self[cur] {
+                        Some(p) if p == opponent => {
+                            let piece = if update { Some(piece) } else { self[cur] };
+                            self[cur] = {
+                                flips += 1;
+                                piece
+                            };
+                            x += dx;
+                            y += dy;
+                        }
+                        Some(p) if p == piece => break,
+                        _ => break,
+                    }
                 }
-                Some(p) if p == piece => break,
-                _ => break,
             }
         }
-    }
-
-    // TODO: see walk()
-    fn walk_mut<R, F>(&mut self, (x, y): (i8, i8), (dx, dy): (&i8, &i8), piece: Piece, mut f: F)
-    where
-        F: FnMut(&mut Self, (usize, usize)) -> R,
-    {
-        let opponent = !piece;
-        let mut x = x + dx;
-        let mut y = y + dy;
-        while x >= 0 && y >= 0 && x < WIDTH && y < WIDTH {
-            let cur = (usize::try_from(x).unwrap(), usize::try_from(y).unwrap());
-            match self[cur] {
-                Some(p) if p == opponent => {
-                    f(self, cur);
-                    x += dx;
-                    y += dy;
-                }
-                Some(p) if p == piece => break,
-                _ => break,
-            }
-        }
+        flips
     }
 
     fn on(&self, (x, y): (i8, i8), (dx, dy): (&i8, &i8), piece: Piece) -> bool {
