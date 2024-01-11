@@ -1,10 +1,9 @@
+use crate::PlaceError;
+use serde::{Deserialize, Serialize};
 use std::{
     fmt,
     ops::{Index, IndexMut, Not},
 };
-
-use crate::PlaceError;
-use serde::{Deserialize, Serialize};
 
 const DIRECTIONS: &[(i8, i8)] = &[
     (-1, -1), // Left diagonal
