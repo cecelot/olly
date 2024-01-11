@@ -1,6 +1,7 @@
 pub use board::Piece;
 pub use game::Game;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 mod board;
 mod game;
@@ -18,4 +19,11 @@ pub enum PlaceError {
     OutOfBounds(usize, usize),
     #[error("no pieces were flipped from board square ({0}, {1})")]
     NoFlips(usize, usize),
+}
+
+fn convert<T, R: TryFrom<T>>(x: T, y: T) -> (R, R)
+where
+    R::Error: fmt::Debug,
+{
+    (R::try_from(x).unwrap(), R::try_from(y).unwrap())
 }

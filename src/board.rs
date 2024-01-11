@@ -60,13 +60,12 @@ impl Board {
     pub fn adjacent(&self, x: usize, y: usize) -> Result<bool, PlaceError> {
         // Calling code ensures that x and y are within bounds.
         assert!(x < Self::width() && y < Self::width());
-        let x = i8::try_from(x).unwrap();
-        let y = i8::try_from(y).unwrap();
+        let (x, y): (i8, i8) = crate::convert(x, y);
         Ok(DIRECTIONS
             .iter()
             .filter(|(dx, dy)| x + dx >= 0 && y + dy >= 0)
             .map(|(dx, dy)| (x + dx, y + dy))
-            .map(|(x, y)| (usize::try_from(x).unwrap(), usize::try_from(y).unwrap()))
+            .map(|(x, y)| crate::convert(x, y))
             .filter(|&(x, y)| x < Self::width() && y < Self::width())
             .any(|(x, y)| self[(x, y)].is_some()))
     }
@@ -75,15 +74,14 @@ impl Board {
         // Calling code ensures that x and y are within bounds.
         assert!(x < Self::width() && y < Self::width());
         let mut flips = 0;
-        let x = i8::try_from(x).unwrap();
-        let y = i8::try_from(y).unwrap();
+        let (x, y) = crate::convert(x, y);
         for (dx, dy) in DIRECTIONS {
             if self.on((x, y), (dx, dy), piece) {
                 let opponent = !piece;
                 let mut x = x + dx;
                 let mut y = y + dy;
                 while self.within_bounds(x, y) {
-                    let cur = (usize::try_from(x).unwrap(), usize::try_from(y).unwrap());
+                    let cur = crate::convert(x, y);
                     match self[cur] {
                         Some(p) if p == opponent => {
                             let piece = if update { Some(piece) } else { self[cur] };
@@ -107,7 +105,7 @@ impl Board {
         let mut x = x + dx;
         let mut y = y + dy;
         while self.within_bounds(x, y) {
-            let cur = (usize::try_from(x).unwrap(), usize::try_from(y).unwrap());
+            let cur = crate::convert(x, y);
             if self[cur].is_some_and(|square| piece == square) {
                 return true;
             }
