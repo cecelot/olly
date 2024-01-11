@@ -1,17 +1,19 @@
 use crate::{server::state::AppState, Game, Piece};
 use axum::{extract::ws::Message, http::StatusCode};
-use serde::{Deserialize, Serialize};
+use serde::{de::Error, Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::str::FromStr;
 use uuid::{timestamp::context, Timestamp, Uuid};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Packet {
     op: Opcode,
+    #[serde(flatten)]
     data: Option<Data>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
+#[serde(tag = "t", content = "d")]
 enum Data {
     Place {
         id: String,
@@ -24,20 +26,21 @@ enum Data {
     },
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
+#[repr(u8)]
 enum Opcode {
-    Create,
-    Join,
+    Create = 1 << 0,
     Place,
-    Reset,
+    Join,
     Leave,
+    Reset,
 }
 
 #[derive(thiserror::Error, Debug)]
 pub enum ParseError {
-    #[error("Message is not valid UTF-8")]
+    #[error("invalid utf-8")]
     InvalidUtf8,
-    #[error("Invalid JSON: {0}")]
+    #[error("{0}")]
     Json(serde_json::Error),
 }
 
@@ -46,8 +49,12 @@ impl TryFrom<Message> for Packet {
 
     fn try_from(msg: Message) -> Result<Self, Self::Error> {
         let s = msg.to_text().map_err(|_| ParseError::InvalidUtf8)?;
-        let packet = serde_json::from_str(s).map_err(ParseError::Json)?;
-        Ok(packet)
+        let packet: Self = serde_json::from_str(s).map_err(ParseError::Json)?;
+        if packet.op != Opcode::Create && packet.data.is_none() {
+            Err(ParseError::Json(serde_json::Error::missing_field("d")))
+        } else {
+            Ok(packet)
+        }
     }
 }
 

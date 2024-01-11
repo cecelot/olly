@@ -15,3 +15,4 @@ tokio = { version = "1.35.1", features = ["full"] }
 tower = "0.4.13"
 tokio-tungstenite = "0.21.0"
 futures = "0.3.30"
+serde_repr = "0.1.18"

@@ -4,6 +4,7 @@ use axum::{
         ws::{Message, WebSocket, WebSocketUpgrade},
         State,
     },
+    http::StatusCode,
     response::Response as AxumResponse,
     routing::get,
     Router,
@@ -27,8 +28,13 @@ async fn callback(mut socket: WebSocket, state: AppState) {
         let packet = match Packet::try_from(msg) {
             Ok(packet) => packet,
             Err(e) => {
-                // client disconnected on failure
-                let _ = socket.send(Message::Text(e.to_string())).await;
+                let resp = Response::Error {
+                    message: e.to_string(),
+                    code: StatusCode::BAD_REQUEST.into(),
+                };
+                let msg = serde_json::to_string(&resp).unwrap();
+                // client disconnected on send failure
+                let _ = socket.send(Message::Text(msg)).await;
                 continue;
             }
         };
