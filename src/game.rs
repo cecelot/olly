@@ -1,11 +1,9 @@
-use std::fmt;
-
-use serde::{Deserialize, Serialize};
-
 use crate::{
     board::{Board, Piece},
     PlaceError,
 };
+use serde::{Deserialize, Serialize};
+use std::fmt;
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Game {

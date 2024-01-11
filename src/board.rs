@@ -3,9 +3,8 @@ use std::{
     ops::{Index, IndexMut, Not},
 };
 
-use serde::{Deserialize, Serialize};
-
 use crate::PlaceError;
+use serde::{Deserialize, Serialize};
 
 const DIRECTIONS: &[(i8, i8)] = &[
     (-1, -1), // Left diagonal
@@ -17,7 +16,6 @@ const DIRECTIONS: &[(i8, i8)] = &[
     (0, 1),   // Bottom
     (1, 1),   // Bottom right
 ];
-const WIDTH: i8 = Board::width() as i8;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Piece {
@@ -85,7 +83,7 @@ impl Board {
                 let opponent = !piece;
                 let mut x = x + dx;
                 let mut y = y + dy;
-                while x >= 0 && y >= 0 && x < WIDTH && y < WIDTH {
+                while self.within_bounds(x, y) {
                     let cur = (usize::try_from(x).unwrap(), usize::try_from(y).unwrap());
                     match self[cur] {
                         Some(p) if p == opponent => {
@@ -109,7 +107,7 @@ impl Board {
     fn on(&self, (x, y): (i8, i8), (dx, dy): (&i8, &i8), piece: Piece) -> bool {
         let mut x = x + dx;
         let mut y = y + dy;
-        while x >= 0 && y >= 0 && x < WIDTH && y < WIDTH {
+        while self.within_bounds(x, y) {
             let cur = (usize::try_from(x).unwrap(), usize::try_from(y).unwrap());
             if self[cur].is_some_and(|square| piece == square) {
                 return true;
@@ -118,6 +116,11 @@ impl Board {
             y += dy;
         }
         false
+    }
+
+    fn within_bounds(&self, x: i8, y: i8) -> bool {
+        const WIDTH: i8 = Board::width() as i8;
+        x >= 0 && y >= 0 && x < WIDTH && y < WIDTH
     }
 
     /// The width of the board. A standard Othello board is an 8x8 grid.
