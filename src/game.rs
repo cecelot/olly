@@ -38,12 +38,12 @@ impl Game {
         } else {
             match (
                 self.turn == piece,
-                !self.board.adjacent(x, y)?,
-                self.board[(x, y)].is_some(),
+                self.board.adjacent(x, y)?,
+                self.board[(x, y)].is_none(),
             ) {
                 (false, _, _) => Err(PlaceError::Turn(piece)),
-                (_, true, _) => Err(PlaceError::NotAdjacent(x, y)),
-                (_, _, true) => Err(PlaceError::Occupied(x, y)),
+                (_, false, _) => Err(PlaceError::NotAdjacent(x, y)),
+                (_, _, false) => Err(PlaceError::Occupied(x, y)),
                 _ if self.board.flip(x, y, piece, false) == 0 => Err(PlaceError::NoFlips(x, y)),
                 _ => Ok(()),
             }
