@@ -19,6 +19,17 @@ impl Game {
         }
     }
 
+    pub fn moves(&mut self, piece: Piece) -> Vec<(usize, usize)> {
+        self.points()
+            .into_iter()
+            .filter(|&(x, y)| self.validate(x, y, piece).is_ok())
+            .collect()
+    }
+
+    fn points(&self) -> impl IntoIterator<Item = (usize, usize)> {
+        (0..Board::width()).flat_map(|x| (0..Board::width()).map(move |y| (x, y)))
+    }
+
     pub fn place(&mut self, x: usize, y: usize, piece: Piece) -> Result<(), PlaceError> {
         self.validate(x, y, piece)?;
         self.board[(x, y)] = Some(piece);
@@ -77,6 +88,13 @@ mod tests {
     fn new() {
         let state = Game::new();
         assert_eq!(state.turn, Piece::Black);
+    }
+
+    #[test]
+    fn initial_moves() {
+        let mut state = Game::new();
+        let moves = state.moves(Piece::Black);
+        assert_eq!(moves.len(), 4);
     }
 
     #[test]
