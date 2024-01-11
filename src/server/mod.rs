@@ -25,21 +25,14 @@ async fn handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> AxumRes
 
 async fn callback(mut socket: WebSocket, state: AppState) {
     while let Some(Ok(msg)) = socket.recv().await {
-        let packet = match Packet::try_from(msg) {
-            Ok(packet) => packet,
-            Err(e) => {
-                let resp = Response::Error {
-                    message: e.to_string(),
-                    code: StatusCode::BAD_REQUEST.into(),
-                };
-                let msg = serde_json::to_string(&resp).unwrap();
-                // client disconnected on send failure
-                let _ = socket.send(Message::Text(msg)).await;
-                continue;
-            }
-        };
-        let reply = packet.process(&state);
-        let text = serde_json::to_string(&reply).unwrap();
+        let resp = Packet::try_from(msg).map_or_else(
+            |e| Response::Error {
+                message: e.to_string(),
+                code: StatusCode::BAD_REQUEST.into(),
+            },
+            |packet| packet.process(&state),
+        );
+        let text = serde_json::to_string(&resp).unwrap();
         let _ = socket.send(Message::Text(text)).await;
     }
 }
