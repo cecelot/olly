@@ -34,10 +34,7 @@ impl Game {
         self.validate(x, y, piece)?;
         self.board[(x, y)] = Some(piece);
         self.board.flip(x, y, piece, true);
-        self.turn = match self.turn {
-            Piece::Black => Piece::White,
-            Piece::White => Piece::Black,
-        };
+        self.turn = !self.turn;
         Ok(())
     }
 
