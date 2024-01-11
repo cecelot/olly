@@ -1,5 +1,5 @@
 use futures::{SinkExt, StreamExt};
-use othello::server::Reply;
+use othello::server::Response;
 use std::{
     future::IntoFuture,
     net::{Ipv4Addr, SocketAddr},
@@ -21,7 +21,7 @@ async fn init() -> WebSocket {
     socket
 }
 
-async fn send(socket: &mut WebSocket, msg: &str) -> Reply {
+async fn send(socket: &mut WebSocket, msg: &str) -> Response {
     socket.send(Message::text(msg)).await.unwrap();
     match socket.next().await.unwrap().unwrap() {
         Message::Text(msg) => serde_json::from_str(&msg).unwrap(),
@@ -33,14 +33,14 @@ async fn send(socket: &mut WebSocket, msg: &str) -> Reply {
 async fn create() {
     let mut socket = init().await;
     let msg = send(&mut socket, "{\"op\":\"Create\"}").await;
-    assert!(matches!(msg, Reply::Created { .. }));
+    assert!(matches!(msg, Response::Created { .. }));
 }
 
 #[tokio::test]
 async fn bad_placement() {
     let mut socket = init().await;
     let id = match send(&mut socket, "{\"op\":\"Create\"}").await {
-        Reply::Created { id } => id,
+        Response::Created { id } => id,
         msg => panic!("expected a created message but got {msg:?}"),
     };
     let data = format!(
@@ -50,7 +50,7 @@ async fn bad_placement() {
     let msg = send(&mut socket, &data).await;
     assert_eq!(
         msg,
-        Reply::Error {
+        Response::Error {
             message: "board square (3, 3) is occupied".into(),
             code: 400
         }
@@ -61,7 +61,7 @@ async fn bad_placement() {
 async fn valid_placement() {
     let mut socket = init().await;
     let id = match send(&mut socket, "{\"op\":\"Create\"}").await {
-        Reply::Created { id } => id,
+        Response::Created { id } => id,
         msg => panic!("expected a created message but got {msg:?}"),
     };
     let data = format!(
@@ -69,5 +69,5 @@ async fn valid_placement() {
             id
         );
     let msg = send(&mut socket, &data).await;
-    assert!(matches!(msg, Reply::State(..)));
+    assert!(matches!(msg, Response::State(..)));
 }

@@ -52,7 +52,7 @@ impl TryFrom<Message> for Packet {
 }
 
 impl Packet {
-    pub fn process(&self, state: &AppState) -> Reply {
+    pub fn process(&self, state: &AppState) -> Response {
         match self.op {
             Opcode::Create => self.create(state),
             Opcode::Place => self.place(state),
@@ -60,37 +60,46 @@ impl Packet {
             Opcode::Join => todo!(),
             Opcode::Leave => todo!(),
         }
+        .unwrap_or_else(std::convert::identity)
     }
 
-    fn create(&self, state: &AppState) -> Reply {
+    fn create(&self, state: &AppState) -> Result<Response, Response> {
         let game = Game::new();
         let id = Uuid::new_v7(Timestamp::now(context::NoContext));
         let mut games = state.games.lock().expect("mutex was poisoned");
         games.insert(id, game);
-        Reply::Created { id: id.to_string() }
+        Ok(Response::Created { id: id.to_string() })
     }
 
-    fn place(&self, state: &AppState) -> Reply {
+    fn place(&self, state: &AppState) -> Result<Response, Response> {
         let mut games = state.games.lock().expect("mutex was poisoned");
         let (id, &x, &y, &piece) = match self.data.as_ref().unwrap() {
             Data::Place { id, x, y, piece } => (id, x, y, piece),
-            _ => panic!("expected serde reject invalid packet data"),
+            _ => panic!("expected serde to reject invalid packet data"),
         };
-        let game = games.get_mut(&Uuid::from_str(id).unwrap()).unwrap();
-        if let Err(e) = game.place(x, y, piece) {
-            Reply::Error {
-                message: e.to_string(),
-                code: StatusCode::BAD_REQUEST.into(),
-            }
-        } else {
-            Reply::State(game.clone())
-        }
+        let uuid = Uuid::from_str(id).map_err(|_| Response::Error {
+            message: "invalid game id format".into(),
+            code: StatusCode::BAD_REQUEST.into(),
+        })?;
+        let game = games.get_mut(&uuid).ok_or(Response::Error {
+            message: format!("no game with id {}", id),
+            code: StatusCode::NOT_FOUND.into(),
+        })?;
+        game.place(x, y, piece).map_or_else(
+            |e| {
+                Err(Response::Error {
+                    message: e.to_string(),
+                    code: StatusCode::BAD_REQUEST.into(),
+                })
+            },
+            |_| Ok(Response::State(game.clone())),
+        )
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum Reply {
+pub enum Response {
     Error { message: String, code: u16 },
     Created { id: String },
     State(Game),

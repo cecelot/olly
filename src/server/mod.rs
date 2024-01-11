@@ -4,7 +4,7 @@ use axum::{
         ws::{Message, WebSocket, WebSocketUpgrade},
         State,
     },
-    response::Response,
+    response::Response as AxumResponse,
     routing::get,
     Router,
 };
@@ -12,13 +12,13 @@ use axum::{
 mod packet;
 mod state;
 
-pub use packet::Reply; // is this poor design?
+pub use packet::Response; // is this poor design?
 
 pub fn app() -> Router {
     Router::new().route("/live", get(handler).with_state(AppState::new()))
 }
 
-async fn handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
+async fn handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> AxumResponse {
     ws.on_upgrade(|socket| callback(socket, state))
 }
 
