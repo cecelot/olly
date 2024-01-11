@@ -57,18 +57,17 @@ impl Default for Game {
     }
 }
 
-impl fmt::Display for Game {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let json = serde_json::to_string(self).map_err(|_| fmt::Error)?;
-        write!(f, "{}", json)
-    }
-}
-
 impl fmt::Debug for Game {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Turn: {:?}", self.turn)?;
         writeln!(f, "Board:")?;
         writeln!(f, "{:?}", self.board)
+    }
+}
+
+impl fmt::Display for Game {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{:?}", self)
     }
 }
 
