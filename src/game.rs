@@ -74,7 +74,7 @@ impl fmt::Debug for Game {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{Game, Piece, PlaceError};
 
     #[test]
     fn new() {

@@ -161,7 +161,7 @@ impl fmt::Debug for Board {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::Board;
 
     #[test]
     fn adjacent() {

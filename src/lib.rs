@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 mod board;
 mod game;
+pub mod server;
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PlaceError {
