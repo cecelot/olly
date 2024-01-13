@@ -1,19 +1,28 @@
 use crate::{
-    server::{entities::member, errors, state::AppState},
+    server::{
+        entities::{member, prelude::*, session},
+        errors,
+        state::AppState,
+    },
     Game, Piece,
 };
+use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::{extract::ws::Message, http::StatusCode};
+use base64::Engine;
+use rand::RngCore;
+use sea_orm::{sea_query::OnConflict, ActiveValue, ColumnTrait, EntityTrait, QueryFilter};
 use serde::{de::Error, Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::str::FromStr;
 use tokio::sync::{broadcast, mpsc};
-use uuid::{timestamp::context, Timestamp, Uuid};
+use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Packet {
     op: Opcode,
     #[serde(flatten)]
     data: Option<Data>,
+    s: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -59,41 +68,107 @@ impl TryFrom<&Message> for Packet {
     fn try_from(msg: &Message) -> Result<Self, Self::Error> {
         let s = msg.to_text().map_err(|_| ParseError::InvalidUtf8)?;
         let packet: Self = serde_json::from_str(s).map_err(ParseError::Json)?;
-        if packet.op != Opcode::Create && packet.data.is_none() {
-            Err(ParseError::Json(serde_json::Error::missing_field("d")))
-        } else {
-            Ok(packet)
+        match packet.op {
+            op if !matches!(op, Opcode::Create) && packet.data.is_none() => {
+                Err(ParseError::Json(serde_json::Error::missing_field("d")))
+            }
+            op if !matches!(op, Opcode::Identify) && packet.s.is_none() => {
+                Err(ParseError::Json(serde_json::Error::missing_field("s")))
+            }
+            _ => Ok(packet),
         }
     }
 }
 
 impl Packet {
-    pub fn process(&self, state: &AppState, sender: Option<mpsc::Sender<Response>>) -> Response {
+    pub async fn process(
+        &self,
+        state: &AppState,
+        sender: Option<mpsc::Sender<Response>>,
+    ) -> Response {
         match self.op {
-            Opcode::Identify => self.identify(state),
-            Opcode::Create => self.create(state),
-            Opcode::Place => self.place(state),
+            Opcode::Identify => self.identify(state).await,
+            Opcode::Create => self.create(state).await,
+            Opcode::Place => self.place(state).await,
             Opcode::Reset => todo!(),
-            Opcode::Join => self.join(state, sender.expect("missing sender")),
+            Opcode::Join => self.join(state, sender.expect("missing sender")).await,
             Opcode::Leave => todo!(),
         }
         .unwrap_or_else(std::convert::identity)
     }
 
-    fn identify(&self, _: &AppState) -> Result<Response, Response> {
-        // TODO: Actually authenticate the user.
-        Ok(Response::Ready {
-            token: {
-                let id = Uuid::new_v7(Timestamp::now(context::NoContext));
-                id.to_string()
-            },
+    async fn identify(&self, state: &AppState) -> Result<Response, Response> {
+        let (username, password) = match self.data.as_ref().unwrap() {
+            Data::Identify { username, password } => (username, password),
+            _ => panic!("expected serde to reject invalid packet data"),
+        };
+        let user = match Member::find()
+            .filter(member::Column::Username.eq(username))
+            .one(state.database.as_ref())
+            .await
+        {
+            Ok(Some(user)) => user,
+            Ok(None) => {
+                return Err(Response::error(
+                    errors::INVALID_USERNAME,
+                    StatusCode::NOT_FOUND,
+                ))
+            }
+            Err(e) => {
+                return Err(Response::error(
+                    &e.to_string(),
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                ))
+            }
+        };
+        let hashed = PasswordHash::new(user.password.as_str()).map_err(|_| {
+            Response::error(errors::INVALID_PASSWORD_FORMAT, StatusCode::BAD_REQUEST)
+        })?;
+        if Argon2::default()
+            .verify_password(password.as_bytes(), &hashed)
+            .is_err()
+        {
+            return Err(Response::error(
+                errors::INVALID_PASSWORD,
+                StatusCode::FORBIDDEN,
+            ));
+        }
+        let key = {
+            let mut dst = [0; 32];
+            // ThreadRng satisfies the CryptoRng trait, so
+            // it should be cryptographically secure. TODO:
+            // look into a more secure key generation method.
+            rand::thread_rng().fill_bytes(&mut dst);
+            base64::prelude::BASE64_STANDARD.encode(dst)
+        };
+        let token = match Session::insert(session::ActiveModel {
+            id: ActiveValue::set(user.id),
+            key: ActiveValue::set(key.clone()),
         })
+        .on_conflict(
+            OnConflict::column(session::Column::Id)
+                .update_column(session::Column::Key)
+                .value(session::Column::Key, key.clone())
+                .to_owned(),
+        )
+        .exec(state.database.as_ref())
+        .await
+        {
+            Ok(_) => key,
+            Err(e) => {
+                return Err(Response::error(
+                    &e.to_string(),
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                ))
+            }
+        };
+        Ok(Response::Ready { token })
     }
 
-    fn create(&self, state: &AppState) -> Result<Response, Response> {
+    async fn create(&self, state: &AppState) -> Result<Response, Response> {
         let game = Game::new();
         let (tx, _) = broadcast::channel(16);
-        let id = Uuid::new_v7(Timestamp::now(context::NoContext));
+        let id = Uuid::now_v7();
         let mut games = state.games.lock().expect("mutex was poisoned");
         let mut rooms = state.rooms.lock().expect("mutex was poisoned");
         games.insert(id, game);
@@ -101,7 +176,11 @@ impl Packet {
         Ok(Response::Created { id: id.to_string() })
     }
 
-    fn join(&self, state: &AppState, sender: mpsc::Sender<Response>) -> Result<Response, Response> {
+    async fn join(
+        &self,
+        state: &AppState,
+        sender: mpsc::Sender<Response>,
+    ) -> Result<Response, Response> {
         let id = match self.data.as_ref().unwrap() {
             Data::Join { id } => id,
             _ => panic!("expected serde to reject invalid packet data"),
@@ -118,17 +197,24 @@ impl Packet {
                 StatusCode::NOT_FOUND,
             ))?
             .subscribe();
+        // Send the current state of the room.
+        let games = state.games.lock().expect("mutex was poisoned");
+        let game = games.get(&uuid).ok_or(Response::error(
+            errors::INVALID_GAME_ID,
+            StatusCode::NOT_FOUND,
+        ))?;
         // Spawn a task to listen for room updates to broadcast.
         tokio::spawn(async move {
             while let Ok(update) = rx.recv().await {
-                sender.send(update).await.unwrap();
+                let _ = sender.send(update).await;
             }
         });
-        Ok(Response::Ok)
+        Ok(Response::State(game.clone()))
     }
 
-    fn place(&self, state: &AppState) -> Result<Response, Response> {
+    async fn place(&self, state: &AppState) -> Result<Response, Response> {
         let mut games = state.games.lock().expect("mutex was poisoned");
+        let mut rooms = state.rooms.lock().expect("mutex was poisoned");
         let (id, &x, &y, &piece) = match self.data.as_ref().unwrap() {
             Data::Place { id, x, y, piece } => (id, x, y, piece),
             _ => panic!("expected serde to reject invalid packet data"),
@@ -140,11 +226,16 @@ impl Packet {
             errors::INVALID_GAME_ID,
             StatusCode::NOT_FOUND,
         ))?;
-        // TODO: Broadcast the update to the room.
-        game.place(x, y, piece).map_or_else(
+        let tx = rooms.get_mut(&uuid).ok_or(Response::error(
+            errors::INVALID_GAME_ID,
+            StatusCode::NOT_FOUND,
+        ))?;
+        let res = game.place(x, y, piece).map_or_else(
             |e| Err(Response::error(&e.to_string(), StatusCode::BAD_REQUEST)),
-            |_| Ok(Response::State(game.clone())),
-        )
+            |_| Ok(Response::Ok),
+        )?;
+        let _ = tx.send(Response::State(game.clone()));
+        Ok(res)
     }
 }
 
@@ -155,7 +246,6 @@ pub enum Response {
     Created { id: String },
     Ready { token: String },
     State(Game),
-    Member(member::Model),
     Ok,
 }
 

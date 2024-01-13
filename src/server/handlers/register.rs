@@ -12,7 +12,7 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use sea_orm::{ActiveValue, DbErr, EntityTrait, RuntimeErr};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use uuid::{timestamp::context, Timestamp, Uuid};
+use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Registration {
@@ -24,7 +24,7 @@ pub async fn register(
     State(state): State<Arc<AppState>>,
     body: Json<Registration>,
 ) -> impl IntoResponse {
-    let id = Uuid::new_v7(Timestamp::now(context::NoContext));
+    let id = Uuid::now_v7();
     let password = body.password.as_bytes();
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
@@ -49,22 +49,12 @@ pub async fn register(
         .exec(state.database.as_ref())
         .await;
     match model {
-        Ok(model) => {
-            let model = Member::find_by_id(model.last_insert_id)
-                .one(state.database.as_ref())
-                .await;
-            match model {
-                Ok(Some(model)) => (StatusCode::CREATED, Json(Response::Member(model))),
-                Ok(_) => panic!("invalid `last_insert_id` for user"),
-                Err(e) => (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(Response::error(
-                        &e.to_string(),
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                    )),
-                ),
-            }
-        }
+        Ok(model) => (
+            StatusCode::CREATED,
+            Json(Response::Created {
+                id: model.last_insert_id.to_string(),
+            }),
+        ),
         Err(e) => match e {
             DbErr::Exec(RuntimeErr::SqlxError(e))
                 if e.as_database_error()

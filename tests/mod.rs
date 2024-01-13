@@ -1,7 +1,9 @@
+use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
 use futures::{SinkExt, StreamExt};
 use othello::server::{member, Response};
+use rand::rngs::OsRng;
 use reqwest::StatusCode;
-use sea_orm::{DatabaseBackend, MockDatabase};
+use sea_orm::{DatabaseBackend, MockDatabase, MockExecResult};
 use serde_json::{json, Value};
 use std::{
     future::IntoFuture,
@@ -9,66 +11,133 @@ use std::{
 };
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::{tungstenite::Message, MaybeTlsStream, WebSocketStream};
+use uuid::Uuid;
 
 type WebSocket = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
-async fn init() -> (WebSocket, SocketAddr) {
-    let listener = TcpListener::bind(SocketAddr::from((Ipv4Addr::UNSPECIFIED, 0)))
-        .await
-        .unwrap();
-    let addr = listener.local_addr().unwrap();
-    let database = MockDatabase::new(DatabaseBackend::Postgres).into_connection();
-    tokio::spawn(axum::serve(listener, othello::server::app(database)).into_future());
-    let (socket, _) = tokio_tungstenite::connect_async(format!("ws://{addr}/live"))
-        .await
-        .unwrap();
-    (socket, addr)
+struct TestContext {
+    socket: WebSocket,
+    token: Option<String>,
 }
 
-async fn send(socket: &mut WebSocket, msg: Value) -> Response {
-    let string = serde_json::to_string(&msg).unwrap();
-    socket.send(Message::text(string)).await.unwrap();
-    receive(socket).await
-}
-
-async fn receive(socket: &mut WebSocket) -> Response {
-    match socket.next().await.unwrap().unwrap() {
-        Message::Text(msg) => serde_json::from_str(&msg).unwrap(),
-        other => panic!("expected a text message but got {other:?}"),
+impl TestContext {
+    async fn new() -> Self {
+        let listener = TcpListener::bind(SocketAddr::from((Ipv4Addr::UNSPECIFIED, 0)))
+            .await
+            .unwrap();
+        let addr = listener.local_addr().unwrap();
+        let (query_results, exec_results) = Self::mock_results().await;
+        let database = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results(query_results)
+            .append_exec_results(exec_results)
+            .into_connection();
+        tokio::spawn(axum::serve(listener, othello::server::app(database)).into_future());
+        let (socket, _) = tokio_tungstenite::connect_async(format!("ws://{addr}/live"))
+            .await
+            .unwrap();
+        Self::create_user(addr).await;
+        Self {
+            socket,
+            token: None,
+        }
     }
-}
 
-async fn create_state(socket: &mut WebSocket) -> String {
-    let msg = send(socket, json!({ "op": 1 })).await;
-    match msg {
-        Response::Created { id } => id,
-        msg => panic!("expected a created message but got {msg:?}"),
+    async fn mock_results() -> (Vec<Vec<member::Model>>, Vec<MockExecResult>) {
+        let id = Uuid::now_v7();
+        let query_results = vec![vec![member::Model {
+            id,
+            username: "alaidriel".into(),
+            password: {
+                let salt = SaltString::generate(&mut OsRng);
+                let argon2 = Argon2::default();
+                argon2.hash_password(b"meow", &salt).unwrap().to_string()
+            },
+        }]];
+        let exec_results = vec![
+            MockExecResult {
+                last_insert_id: 1,
+                rows_affected: 1,
+            },
+            MockExecResult {
+                last_insert_id: 1,
+                rows_affected: 1,
+            },
+        ];
+        (query_results, exec_results)
+    }
+
+    async fn create_user(addr: SocketAddr) -> String {
+        let body = json!({"username": "alaidriel", "password": "meow"});
+        let body = serde_json::to_string(&body).unwrap();
+        let resp = reqwest::Client::new()
+            .post(format!("http://{addr}/register"))
+            .header("Content-Type", "application/json")
+            .body(body)
+            .send()
+            .await;
+        let status = resp.as_ref().unwrap().status();
+        let text = resp.unwrap().text().await.unwrap();
+        let resp: Response = serde_json::from_str(&text).unwrap();
+        assert_eq!(status, StatusCode::CREATED);
+        assert!(matches!(resp, Response::Created { .. }));
+        match resp {
+            Response::Created { id } => id,
+            _ => panic!("expected a created message but got {resp:?}"),
+        }
+    }
+
+    async fn create_game(&mut self) -> String {
+        let msg = self
+            .send(json!({ "op": 1, "s": self.token.clone().unwrap() }))
+            .await;
+        assert!(matches!(msg, Response::Created { .. }));
+        match msg {
+            Response::Created { id } => id,
+            _ => panic!("expected a created message but got {msg:?}"),
+        }
+    }
+
+    async fn authenticate(&mut self) {
+        let msg = self
+            .send(json!({
+                "op": 6,
+                "t": "Identify",
+                "d": {
+                    "username": "alaidriel",
+                    "password": "meow"
+                }
+            }))
+            .await;
+        assert!(matches!(msg, Response::Ready { .. }));
+        self.token = match msg {
+            Response::Ready { token } => Some(token),
+            _ => panic!("expected a ready message but got {msg:?}"),
+        };
+    }
+
+    async fn send(&mut self, msg: Value) -> Response {
+        let string = serde_json::to_string(&msg).unwrap();
+        self.socket.send(Message::text(string)).await.unwrap();
+        self.receive().await
+    }
+
+    async fn receive(&mut self) -> Response {
+        match self.socket.next().await.unwrap().unwrap() {
+            Message::Text(msg) => serde_json::from_str(&msg).unwrap(),
+            other => panic!("expected a text message but got {other:?}"),
+        }
     }
 }
 
 #[tokio::test]
-#[ignore = "mock database not yet implemented"]
 async fn register() {
-    let (_, addr) = init().await;
-    let body = json!({"username": "alaidriel", "password": "meow"});
-    let body = serde_json::to_string(&body).unwrap();
-    let resp = reqwest::Client::new()
-        .post(format!("http://{addr}/register"))
-        .header("Content-Type", "application/json")
-        .body(body)
-        .send()
-        .await;
-    let status = resp.as_ref().unwrap().status();
-    let text = resp.unwrap().text().await.unwrap();
-    let user: member::Model = serde_json::from_str(&text).unwrap();
-    assert_eq!(status, StatusCode::CREATED);
-    assert_eq!(user.username, "alaidriel");
+    TestContext::new().await;
 }
 
 #[tokio::test]
 async fn auth_timeout() {
-    let (mut socket, _) = init().await;
-    let msg = receive(&mut socket).await;
+    let mut context = TestContext::new().await;
+    let msg = context.receive().await;
     assert_eq!(
         msg,
         Response::Error {
@@ -80,20 +149,9 @@ async fn auth_timeout() {
 
 #[tokio::test]
 async fn auth() {
-    let (mut socket, _) = init().await;
-    let msg = send(
-        &mut socket,
-        json!({
-            "op": 6,
-            "t": "Identify",
-            "d": {
-                "username": "test",
-                "password": "test"
-            }
-        }),
-    )
-    .await;
-    assert!(matches!(msg, Response::Ready { .. }))
+    let mut context = TestContext::new().await;
+    context.authenticate().await;
+    assert!(matches!(context.token, Some(..)));
 }
 
 /// This is an edge case with serde_json's deserialization of packets that
@@ -101,16 +159,14 @@ async fn auth() {
 /// a panic when the packet is processed).
 #[tokio::test]
 async fn malformed_packet() {
-    let (mut socket, _) = init().await;
-    let msg = send(
-        &mut socket,
-        json!({
+    let mut context = TestContext::new().await;
+    let msg = context
+        .send(json!({
             "op": 2,
             "t": "Place",
             "data": {}
-        }),
-    )
-    .await;
+        }))
+        .await;
     assert_eq!(
         msg,
         Response::Error {
@@ -121,29 +177,30 @@ async fn malformed_packet() {
 }
 
 #[tokio::test]
-#[ignore = "requires websocket authentication flow"]
 async fn create() {
-    let (mut socket, _) = init().await;
-    let msg = send(&mut socket, json!({ "op": 1 })).await;
-    assert!(matches!(msg, Response::Created { .. }));
+    let mut context = TestContext::new().await;
+    context.authenticate().await;
+    context.create_game().await;
 }
 
 #[tokio::test]
-#[ignore = "requires websocket authentication flow"]
 async fn bad_placement() {
-    let (mut socket, _) = init().await;
-    let id = create_state(&mut socket).await;
-    let data = json!({
-        "op": 2,
-        "t": "Place",
-        "d": {
-            "id": id,
-            "x": 3,
-            "y": 3,
-            "piece": "Black"
-        }
-    });
-    let msg = send(&mut socket, data).await;
+    let mut context = TestContext::new().await;
+    context.authenticate().await;
+    let id = context.create_game().await;
+    let msg = context
+        .send(json!({
+            "op": 2,
+            "t": "Place",
+            "s": context.token.clone().unwrap(),
+            "d": {
+                "id": id,
+                "x": 3,
+                "y": 3,
+                "piece": "Black"
+            }
+        }))
+        .await;
     assert_eq!(
         msg,
         Response::Error {
@@ -154,20 +211,35 @@ async fn bad_placement() {
 }
 
 #[tokio::test]
-#[ignore = "requires websocket authentication flow"]
 async fn valid_placement() {
-    let (mut socket, _) = init().await;
-    let id = create_state(&mut socket).await;
-    let data = json!({
-        "op": 2,
-        "t": "Place",
-        "d": {
-            "id": id,
-            "x": 2,
-            "y": 3,
-            "piece": "Black"
-        }
-    });
-    let msg = send(&mut socket, data).await;
-    assert!(matches!(msg, Response::State(..)));
+    let mut context = TestContext::new().await;
+    context.authenticate().await;
+    let id = context.create_game().await;
+    let initial = context
+        .send(json!({
+            "op": 3,
+            "t": "Join",
+            "s": context.token.clone().unwrap(),
+            "d": {
+                "id": id
+            }
+        }))
+        .await;
+    assert!(matches!(initial, Response::State(..)));
+    let placed = context
+        .send(json!({
+            "op": 2,
+            "t": "Place",
+            "s": context.token.clone().unwrap(),
+            "d": {
+                "id": id,
+                "x": 2,
+                "y": 3,
+                "piece": "Black"
+            }
+        }))
+        .await;
+    assert!(matches!(placed, Response::Ok));
+    let updated = context.receive().await;
+    assert!(matches!(updated, Response::State(..)));
 }

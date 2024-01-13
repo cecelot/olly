@@ -18,7 +18,7 @@ async fn authenticate(
     state: &Arc<AppState>,
 ) -> Option<String> {
     match Packet::try_from(msg) {
-        Ok(packet) => match packet.process(state, None) {
+        Ok(packet) => match packet.process(state, None).await {
             Response::Ready { token } => Some(token),
             // TODO: this will show errors from other handlers in addition to the identify handler.
             Response::Error { message, code } => {
@@ -65,10 +65,10 @@ pub async fn callback(mut socket: WebSocket, state: Arc<AppState>) {
                 let _ = sender.send(Response::Ready { token }).await;
                 // Listen for incoming messages from the client.
                 while let Some(Ok(msg)) = rx.next().await {
-                    let resp = Packet::try_from(&msg).map_or_else(
-                        |e| Response::error(&e.to_string(), StatusCode::BAD_REQUEST),
-                        |packet| packet.process(&state, Some(sender.clone())),
-                    );
+                    let resp = match Packet::try_from(&msg) {
+                        Ok(packet) => packet.process(&state, Some(sender.clone())).await,
+                        Err(e) => Response::error(&e.to_string(), StatusCode::BAD_REQUEST),
+                    };
                     let _ = sender.send(resp).await;
                 }
             } else {

@@ -7,7 +7,9 @@ edition = "2021"
 [dependencies]
 argon2 = "0.5.2"
 axum = { version = "0.7.3", features = ["ws"] }
+base64 = "0.21.7"
 futures = "0.3.30"
+rand = "0.8.5"
 reqwest = "0.11.23"
 sea-orm = { version = "0.12.10", features = ["sqlx-postgres", "runtime-tokio-rustls", "mock", "macros"] }
 serde = { version = "1.0.195", features = ["derive"] }
