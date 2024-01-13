@@ -1,5 +1,5 @@
 use crate::{
-    server::{errors, state::AppState},
+    server::{entities::member, errors, state::AppState},
     Game, Piece,
 };
 use axum::{extract::ws::Message, http::StatusCode};
@@ -155,6 +155,7 @@ pub enum Response {
     Created { id: String },
     Ready { token: String },
     State(Game),
+    Member(member::Model),
     Ok,
 }
 

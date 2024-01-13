@@ -5,8 +5,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+argon2 = "0.5.2"
 axum = { version = "0.7.3", features = ["ws"] }
 futures = "0.3.30"
+reqwest = "0.11.23"
+sea-orm = { version = "0.12.10", features = ["sqlx-postgres", "runtime-tokio-rustls", "mock", "macros"] }
 serde = { version = "1.0.195", features = ["derive"] }
 serde_json = "1.0.111"
 serde_repr = "0.1.18"

@@ -1,5 +1,7 @@
 use futures::{SinkExt, StreamExt};
-use othello::server::Response;
+use othello::server::{member, Response};
+use reqwest::StatusCode;
+use sea_orm::{DatabaseBackend, MockDatabase};
 use serde_json::{json, Value};
 use std::{
     future::IntoFuture,
@@ -10,16 +12,17 @@ use tokio_tungstenite::{tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
 type WebSocket = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
-async fn init() -> WebSocket {
+async fn init() -> (WebSocket, SocketAddr) {
     let listener = TcpListener::bind(SocketAddr::from((Ipv4Addr::UNSPECIFIED, 0)))
         .await
         .unwrap();
     let addr = listener.local_addr().unwrap();
-    tokio::spawn(axum::serve(listener, othello::server::app()).into_future());
+    let database = MockDatabase::new(DatabaseBackend::Postgres).into_connection();
+    tokio::spawn(axum::serve(listener, othello::server::app(database)).into_future());
     let (socket, _) = tokio_tungstenite::connect_async(format!("ws://{addr}/live"))
         .await
         .unwrap();
-    socket
+    (socket, addr)
 }
 
 async fn send(socket: &mut WebSocket, msg: Value) -> Response {
@@ -44,8 +47,27 @@ async fn create_state(socket: &mut WebSocket) -> String {
 }
 
 #[tokio::test]
+#[ignore = "mock database not yet implemented"]
+async fn register() {
+    let (_, addr) = init().await;
+    let body = json!({"username": "alaidriel", "password": "meow"});
+    let body = serde_json::to_string(&body).unwrap();
+    let resp = reqwest::Client::new()
+        .post(format!("http://{addr}/register"))
+        .header("Content-Type", "application/json")
+        .body(body)
+        .send()
+        .await;
+    let status = resp.as_ref().unwrap().status();
+    let text = resp.unwrap().text().await.unwrap();
+    let user: member::Model = serde_json::from_str(&text).unwrap();
+    assert_eq!(status, StatusCode::CREATED);
+    assert_eq!(user.username, "alaidriel");
+}
+
+#[tokio::test]
 async fn auth_timeout() {
-    let mut socket = init().await;
+    let (mut socket, _) = init().await;
     let msg = receive(&mut socket).await;
     assert_eq!(
         msg,
@@ -58,7 +80,7 @@ async fn auth_timeout() {
 
 #[tokio::test]
 async fn auth() {
-    let mut socket = init().await;
+    let (mut socket, _) = init().await;
     let msg = send(
         &mut socket,
         json!({
@@ -79,7 +101,7 @@ async fn auth() {
 /// a panic when the packet is processed).
 #[tokio::test]
 async fn malformed_packet() {
-    let mut socket = init().await;
+    let (mut socket, _) = init().await;
     let msg = send(
         &mut socket,
         json!({
@@ -99,17 +121,17 @@ async fn malformed_packet() {
 }
 
 #[tokio::test]
-#[ignore]
+#[ignore = "requires websocket authentication flow"]
 async fn create() {
-    let mut socket = init().await;
+    let (mut socket, _) = init().await;
     let msg = send(&mut socket, json!({ "op": 1 })).await;
     assert!(matches!(msg, Response::Created { .. }));
 }
 
 #[tokio::test]
-#[ignore]
+#[ignore = "requires websocket authentication flow"]
 async fn bad_placement() {
-    let mut socket = init().await;
+    let (mut socket, _) = init().await;
     let id = create_state(&mut socket).await;
     let data = json!({
         "op": 2,
@@ -132,9 +154,9 @@ async fn bad_placement() {
 }
 
 #[tokio::test]
-#[ignore]
+#[ignore = "requires websocket authentication flow"]
 async fn valid_placement() {
-    let mut socket = init().await;
+    let (mut socket, _) = init().await;
     let id = create_state(&mut socket).await;
     let data = json!({
         "op": 2,
