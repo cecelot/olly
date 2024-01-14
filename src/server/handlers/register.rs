@@ -8,7 +8,12 @@ use argon2::{
     password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
     Argon2,
 };
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+use axum::{
+    extract::{rejection::JsonRejection, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Json,
+};
 use sea_orm::{ActiveValue, DbErr, EntityTrait, RuntimeErr};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -23,13 +28,27 @@ pub struct Registration {
 
 pub async fn register(
     State(state): State<Arc<AppState>>,
-    body: Json<Registration>,
+    body: Result<Json<Registration>, JsonRejection>,
 ) -> impl IntoResponse {
+    let (username, password) = match body {
+        Ok(body) => (body.username.clone(), body.password.clone()),
+        Err(e) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(HttpResponse::new(
+                    e.body_text().replace(
+                        "Failed to deserialize the JSON body into the target type: ",
+                        "",
+                    ),
+                    StatusCode::BAD_REQUEST,
+                )),
+            )
+        }
+    };
     let id = Uuid::now_v7();
-    let password = body.password.as_bytes();
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
-    let hashed = match argon2.hash_password(password, &salt) {
+    let hashed = match argon2.hash_password(password.as_bytes(), &salt) {
         Ok(hashed) => hashed.to_string(),
         Err(e) => {
             return (
@@ -43,7 +62,7 @@ pub async fn register(
     };
     let registration = member::ActiveModel {
         id: ActiveValue::set(id),
-        username: ActiveValue::set(body.username.clone()),
+        username: ActiveValue::set(username),
         password: ActiveValue::set(hashed),
     };
     let model = Member::insert(registration)

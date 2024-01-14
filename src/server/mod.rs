@@ -19,7 +19,7 @@ mod state;
 // tests module.
 pub use entities::{game, member, session};
 pub use handlers::Response as HttpResponse;
-pub use packet::Response as SocketResponse;
+pub use packet::Event as SocketEvent;
 
 pub fn app(database: DatabaseConnection) -> Router {
     let state = Arc::new(AppState::new(database));
