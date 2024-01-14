@@ -2,6 +2,9 @@ name: Rust
 on:
   pull_request:
   push:
+    paths:
+      - 'src/**'
+      - 'migration/**'
 
 jobs:
   tests:
