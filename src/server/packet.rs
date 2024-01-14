@@ -24,7 +24,7 @@ use uuid::Uuid;
 pub struct Packet {
     op: Opcode,
     d: Data,
-    s: Option<String>,
+    t: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -74,8 +74,8 @@ impl TryFrom<&Message> for Packet {
         let s = msg.to_text().map_err(|_| ParseError::InvalidUtf8)?;
         let packet: Self = serde_json::from_str(s).map_err(ParseError::Json)?;
         match packet.op {
-            op if !matches!(op, Opcode::Identify) && packet.s.is_none() => {
-                Err(ParseError::Json(serde_json::Error::missing_field("s")))
+            op if !matches!(op, Opcode::Identify) && packet.t.is_none() => {
+                Err(ParseError::Json(serde_json::Error::missing_field("t")))
             }
             _ => Ok(packet),
         }
@@ -262,7 +262,7 @@ impl Packet {
     }
 
     async fn current_user(&self, state: &AppState) -> Result<String, Response> {
-        let token = self.s.as_ref().unwrap();
+        let token = self.t.as_ref().unwrap();
         let session = entities::Session::find()
             .filter(session::Column::Key.eq(token))
             .one(state.database.as_ref())

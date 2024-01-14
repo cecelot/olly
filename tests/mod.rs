@@ -95,7 +95,7 @@
 //         let msg = self
 //             .send(json!({ "op": 1, "d": {
 //                 "guest": "unicorn"
-//             }, "s": self.token.clone().unwrap() }))
+//             }, "t": self.token.clone().unwrap() }))
 //             .await;
 //         assert!(matches!(msg, Response::Created { .. }));
 //         match msg {
@@ -162,7 +162,7 @@
 //             "d": {
 //                 "guest": "unicorn",
 //             },
-//             "s": "hello"
+//             "t": "hello"
 //         }))
 //         .await;
 //     dbg!(&msg);
@@ -190,7 +190,7 @@
 //     let msg = context
 //         .send(json!({
 //             "op": 2,
-//             "s": context.token.clone().unwrap(),
+//             "t": context.token.clone().unwrap(),
 //             "d": {
 //                 "id": id,
 //                 "x": 3,
@@ -216,7 +216,7 @@
 //     let initial = context
 //         .send(json!({
 //             "op": 3,
-//             "s": context.token.clone().unwrap(),
+//             "t": context.token.clone().unwrap(),
 //             "d": {
 //                 "id": id
 //             }
@@ -227,7 +227,7 @@
 //     let placed = context
 //         .send(json!({
 //             "op": 2,
-//             "s": context.token.clone().unwrap(),
+//             "t": context.token.clone().unwrap(),
 //             "d": {
 //                 "id": id,
 //                 "x": 2,
