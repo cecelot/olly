@@ -20,7 +20,7 @@ export default function Square(props: SquareProps) {
     <div
       onClick={props.onClick}
       class={cs(
-        "cursor-pointer bg-green-400 w-20 h-20 text-center border-gray-700 border-r-2 border-t-2",
+        "cursor-pointer bg-green-400 w-20 h-20 text-center border-slate-900 border-r-2 border-t-2",
         {
           "border-l-2": props.col === 0,
           "border-b-2": props.row === 7,

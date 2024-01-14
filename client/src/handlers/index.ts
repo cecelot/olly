@@ -7,23 +7,23 @@ import {
   GameUpdateEvent,
   AckEvent,
   ErrorEvent,
-} from "./types";
+} from "~/types";
 
 export function handleAckEvent(
   _ws: WebSocket,
   _ev: AckEvent,
-  _setToken: Setter<string | undefined>,
-  _setGameId: Setter<string | undefined>,
+  _setToken: Setter<string>,
+  _setGameId: Setter<string>,
   _setTurn: Setter<Piece>,
   _board: Board,
-  _token: Accessor<string | undefined>
+  _token: Accessor<string>
 ) {}
 
 export function handleReady(
   ws: WebSocket,
   ev: ReadyEvent,
-  setToken: Setter<string | undefined>,
-  _setGameId: Setter<string | undefined>,
+  setToken: Setter<string>,
+  _setGameId: Setter<string>,
   _setTurn: Setter<Piece>,
   _board: Board,
   _token: Accessor<string | undefined>
@@ -41,8 +41,8 @@ export function handleReady(
 export function handleGameCreate(
   ws: WebSocket,
   ev: GameCreateEvent,
-  _setToken: Setter<string | undefined>,
-  setGameId: Setter<string | undefined>,
+  _setToken: Setter<string>,
+  setGameId: Setter<string>,
   _setTurn: Setter<Piece>,
   _board: Board,
   token: Accessor<string | undefined>
@@ -63,8 +63,8 @@ export function handleGameCreate(
 export function handleGameUpdate(
   _ws: WebSocket,
   ev: GameUpdateEvent,
-  _setToken: Setter<string | undefined>,
-  _setGameId: Setter<string | undefined>,
+  _setToken: Setter<string>,
+  _setGameId: Setter<string>,
   setTurn: Setter<Piece>,
   board: Board,
   _token: Accessor<string | undefined>
@@ -86,8 +86,8 @@ export function handleGameUpdate(
 export function handleErrorEvent(
   _ws: WebSocket,
   ev: ErrorEvent,
-  _setToken: Setter<string | undefined>,
-  _setGameId: Setter<string | undefined>,
+  _setToken: Setter<string>,
+  _setGameId: Setter<string>,
   _setTurn: Setter<Piece>,
   _board: Board,
   _token: Accessor<string | undefined>
