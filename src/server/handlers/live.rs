@@ -20,21 +20,12 @@ async fn authenticate(
     match Packet::try_from(msg) {
         Ok(packet) => match packet.process(state, None).await {
             Response::Ready { token } => Some(token),
-            // TODO: this will show errors from other handlers in addition to the identify handler.
             Response::Error { message, code } => {
                 let resp = Response::error(&message, StatusCode::from_u16(code).unwrap());
                 send(socket, resp).await;
                 None
             }
-            _ => {
-                // The packet was processed by a handler that wasn't the identify handler.
-                let _ = send(
-                    socket,
-                    Response::error(errors::UNAUTHORIZED_CONNECTION, StatusCode::UNAUTHORIZED),
-                )
-                .await;
-                None
-            }
+            _ => panic!("packet processed by handler other than identify"),
         },
         Err(e) => {
             let resp = Response::error(&e.to_string(), StatusCode::BAD_REQUEST);

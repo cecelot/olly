@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[workspace]
+members = [
+    ".",
+    "migration"
+]
+
 [dependencies]
 argon2 = "0.5.2"
 axum = { version = "0.7.3", features = ["ws"] }

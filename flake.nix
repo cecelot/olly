@@ -25,14 +25,15 @@
       devShells.default = pkgs.mkShell {
         buildInputs = with pkgs.darwin.apple_sdk; [
           rust-stable
+          pkgs.postgresql
           frameworks.SystemConfiguration
         ];
+
+        DATABASE_URL = "postgres://othello-server:password@0.0.0.0:5432/othello-server";
 
         # Yes, these are plaintext database credentials. It makes local development easier.
         shellHook = ''
           export PATH="$PATH:$HOME/.local/share/cargo/bin"
-          alias sea-orm-generate="sea-orm-cli generate entity -u "postgres://othello-server:password@0.0.0.0:5432/othello-server" -o "src/entities" --with-serde both"
-          alias sea-orm-migrate='DATABASE_URL="postgres://othello-server:password@0.0.0.0:5432/othello-server" cd migration && cargo run -- up'
         '';
       };
     });

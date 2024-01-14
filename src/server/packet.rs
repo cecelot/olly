@@ -1,6 +1,6 @@
 use crate::{
     server::{
-        entities::{member, prelude::*, session},
+        entities::{game, member, prelude as entities, session},
         errors,
         state::AppState,
     },
@@ -9,8 +9,11 @@ use crate::{
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::{extract::ws::Message, http::StatusCode};
 use base64::Engine;
+use futures::Future;
 use rand::RngCore;
-use sea_orm::{sea_query::OnConflict, ActiveValue, ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{
+    sea_query::OnConflict, ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, QueryFilter,
+};
 use serde::{de::Error, Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::str::FromStr;
@@ -20,13 +23,12 @@ use uuid::Uuid;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Packet {
     op: Opcode,
-    #[serde(flatten)]
-    data: Option<Data>,
+    d: Data,
     s: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "t", content = "d")]
+#[serde(untagged)]
 enum Data {
     Identify {
         username: String,
@@ -37,6 +39,9 @@ enum Data {
         x: usize,
         y: usize,
         piece: Piece,
+    },
+    Create {
+        guest: String,
     },
     Join {
         id: String,
@@ -69,9 +74,6 @@ impl TryFrom<&Message> for Packet {
         let s = msg.to_text().map_err(|_| ParseError::InvalidUtf8)?;
         let packet: Self = serde_json::from_str(s).map_err(ParseError::Json)?;
         match packet.op {
-            op if !matches!(op, Opcode::Create) && packet.data.is_none() => {
-                Err(ParseError::Json(serde_json::Error::missing_field("d")))
-            }
             op if !matches!(op, Opcode::Identify) && packet.s.is_none() => {
                 Err(ParseError::Json(serde_json::Error::missing_field("s")))
             }
@@ -88,51 +90,26 @@ impl Packet {
     ) -> Response {
         match self.op {
             Opcode::Identify => self.identify(state).await,
-            Opcode::Create => self.create(state).await,
-            Opcode::Place => self.place(state).await,
-            Opcode::Reset => todo!(),
-            Opcode::Join => self.join(state, sender.expect("missing sender")).await,
+            Opcode::Create => self.authenticated(state, |p| p.create(state)).await,
+            Opcode::Place => self.authenticated(state, |p| p.place(state)).await,
+            Opcode::Join => {
+                self.authenticated(state, |p| p.join(state, sender.expect("missing sender")))
+                    .await
+            }
             Opcode::Leave => todo!(),
+            Opcode::Reset => todo!(),
         }
         .unwrap_or_else(std::convert::identity)
     }
 
     async fn identify(&self, state: &AppState) -> Result<Response, Response> {
-        let (username, password) = match self.data.as_ref().unwrap() {
+        let (username, password) = match &self.d {
             Data::Identify { username, password } => (username, password),
             _ => panic!("expected serde to reject invalid packet data"),
         };
-        let user = match Member::find()
-            .filter(member::Column::Username.eq(username))
-            .one(state.database.as_ref())
-            .await
-        {
-            Ok(Some(user)) => user,
-            Ok(None) => {
-                return Err(Response::error(
-                    errors::INVALID_USERNAME,
-                    StatusCode::NOT_FOUND,
-                ))
-            }
-            Err(e) => {
-                return Err(Response::error(
-                    &e.to_string(),
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                ))
-            }
-        };
-        let hashed = PasswordHash::new(user.password.as_str()).map_err(|_| {
-            Response::error(errors::INVALID_PASSWORD_FORMAT, StatusCode::BAD_REQUEST)
-        })?;
-        if Argon2::default()
-            .verify_password(password.as_bytes(), &hashed)
-            .is_err()
-        {
-            return Err(Response::error(
-                errors::INVALID_PASSWORD,
-                StatusCode::FORBIDDEN,
-            ));
-        }
+        let user = self.user(state, username).await?;
+        self.ensure_valid_password(&user, password).await?;
+        // Generate a random key to use as the session token.
         let key = {
             let mut dst = [0; 32];
             // ThreadRng satisfies the CryptoRng trait, so
@@ -141,34 +118,30 @@ impl Packet {
             rand::thread_rng().fill_bytes(&mut dst);
             base64::prelude::BASE64_STANDARD.encode(dst)
         };
-        let token = match Session::insert(session::ActiveModel {
-            id: ActiveValue::set(user.id),
-            key: ActiveValue::set(key.clone()),
-        })
-        .on_conflict(
-            OnConflict::column(session::Column::Id)
-                .update_column(session::Column::Key)
-                .value(session::Column::Key, key.clone())
-                .to_owned(),
-        )
-        .exec(state.database.as_ref())
-        .await
-        {
-            Ok(_) => key,
-            Err(e) => {
-                return Err(Response::error(
-                    &e.to_string(),
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                ))
-            }
-        };
+        let token = self.create_session(state, &user, key).await?;
         Ok(Response::Ready { token })
     }
 
     async fn create(&self, state: &AppState) -> Result<Response, Response> {
+        let host = self.current_user(state).await?;
+        let guest = match &self.d {
+            Data::Create { guest } => self.user(state, guest).await?,
+            _ => panic!("expected serde to reject invalid packet data"),
+        };
+        let id = Uuid::now_v7();
+        let model = game::ActiveModel {
+            id: ActiveValue::set(id),
+            host: ActiveValue::set(host),
+            guest: ActiveValue::set(guest.id.to_string()),
+        };
+        if let Err(e) = model.insert(state.database.as_ref()).await {
+            return Err(Response::error(
+                &e.to_string(),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ));
+        };
         let game = Game::new();
         let (tx, _) = broadcast::channel(16);
-        let id = Uuid::now_v7();
         let mut games = state.games.lock().expect("mutex was poisoned");
         let mut rooms = state.rooms.lock().expect("mutex was poisoned");
         games.insert(id, game);
@@ -181,10 +154,12 @@ impl Packet {
         state: &AppState,
         sender: mpsc::Sender<Response>,
     ) -> Result<Response, Response> {
-        let id = match self.data.as_ref().unwrap() {
+        let id = match &self.d {
             Data::Join { id } => id,
             _ => panic!("expected serde to reject invalid packet data"),
         };
+        // Verify that the authenticated user is either the host or guest of the game.
+        self.ensure_participant(state, id).await?;
         let uuid = Uuid::from_str(id).map_err(|_| {
             Response::error(errors::INVALID_GAME_ID_FORMAT, StatusCode::BAD_REQUEST)
         })?;
@@ -213,12 +188,14 @@ impl Packet {
     }
 
     async fn place(&self, state: &AppState) -> Result<Response, Response> {
-        let mut games = state.games.lock().expect("mutex was poisoned");
-        let mut rooms = state.rooms.lock().expect("mutex was poisoned");
-        let (id, &x, &y, &piece) = match self.data.as_ref().unwrap() {
+        let (id, &x, &y, &piece) = match &self.d {
             Data::Place { id, x, y, piece } => (id, x, y, piece),
             _ => panic!("expected serde to reject invalid packet data"),
         };
+        // Verify that the authenticated user is either the host or guest of the game.
+        self.ensure_participant(state, id).await?;
+        let mut games = state.games.lock().expect("mutex was poisoned");
+        let mut rooms = state.rooms.lock().expect("mutex was poisoned");
         let uuid = Uuid::from_str(id).map_err(|_| {
             Response::error(errors::INVALID_GAME_ID_FORMAT, StatusCode::BAD_REQUEST)
         })?;
@@ -236,6 +213,145 @@ impl Packet {
         )?;
         let _ = tx.send(Response::State(game.clone()));
         Ok(res)
+    }
+}
+
+// Middleware to require authentication for chosen Packet types.
+impl Packet {
+    async fn authenticated<'a, F>(
+        &'a self,
+        state: &AppState,
+        f: impl FnOnce(&'a Self) -> F,
+    ) -> Result<Response, Response>
+    where
+        F: Future<Output = Result<Response, Response>>,
+    {
+        match self.current_user(state).await {
+            Ok(_) => f(self).await,
+            Err(e) => Err(e),
+        }
+    }
+}
+
+// A collection of helper functions for performing database operations.
+impl Packet {
+    async fn create_session(
+        &self,
+        state: &AppState,
+        user: &member::Model,
+        key: String,
+    ) -> Result<String, Response> {
+        match entities::Session::insert(session::ActiveModel {
+            id: ActiveValue::set(user.id),
+            key: ActiveValue::set(key.clone()),
+        })
+        .on_conflict(
+            OnConflict::column(session::Column::Id)
+                .update_column(session::Column::Key)
+                .to_owned(),
+        )
+        .exec(state.database.as_ref())
+        .await
+        {
+            Ok(_) => Ok(key),
+            Err(e) => Err(Response::error(
+                &e.to_string(),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            )),
+        }
+    }
+
+    async fn current_user(&self, state: &AppState) -> Result<String, Response> {
+        let token = self.s.as_ref().unwrap();
+        let session = entities::Session::find()
+            .filter(session::Column::Key.eq(token))
+            .one(state.database.as_ref())
+            .await;
+        match session {
+            Ok(Some(session)) => Ok(session.id.to_string()),
+            Ok(None) => Err(Response::error(
+                errors::INVALID_TOKEN,
+                StatusCode::FORBIDDEN,
+            )),
+            Err(e) => Err(Response::error(
+                &e.to_string(),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            )),
+        }
+    }
+
+    async fn user(&self, state: &AppState, username: &String) -> Result<member::Model, Response> {
+        match entities::Member::find()
+            .filter(member::Column::Username.eq(username))
+            .one(state.database.as_ref())
+            .await
+        {
+            Ok(Some(user)) => Ok(user),
+            Ok(None) => Err(Response::error(
+                errors::INVALID_USERNAME,
+                StatusCode::NOT_FOUND,
+            )),
+            Err(e) => Err(Response::error(
+                &e.to_string(),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            )),
+        }
+    }
+
+    async fn game(&self, state: &AppState, id: &str) -> Result<game::Model, Response> {
+        let id = Uuid::from_str(id).map_err(|_| {
+            Response::error(errors::INVALID_GAME_ID_FORMAT, StatusCode::BAD_REQUEST)
+        })?;
+        match entities::Game::find_by_id(id)
+            .one(state.database.as_ref())
+            .await
+        {
+            Ok(Some(game)) => Ok(game),
+            Ok(None) => Err(Response::error(
+                errors::INVALID_GAME_ID,
+                StatusCode::NOT_FOUND,
+            )),
+            Err(e) => Err(Response::error(
+                &e.to_string(),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            )),
+        }
+    }
+}
+
+// A collection of helper functions for validating data.
+impl Packet {
+    async fn ensure_valid_password(
+        &self,
+        user: &member::Model,
+        password: &str,
+    ) -> Result<(), Response> {
+        let hashed = PasswordHash::new(user.password.as_str()).map_err(|_| {
+            Response::error(errors::INVALID_PASSWORD_FORMAT, StatusCode::BAD_REQUEST)
+        })?;
+        if Argon2::default()
+            .verify_password(password.as_bytes(), &hashed)
+            .is_err()
+        {
+            Err(Response::error(
+                errors::INVALID_PASSWORD,
+                StatusCode::FORBIDDEN,
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
+    async fn ensure_participant(&self, state: &AppState, id: &str) -> Result<(), Response> {
+        let user = self.current_user(state).await?;
+        let game = self.game(state, id).await?;
+        if game.host != user && game.guest != user {
+            return Err(Response::error(
+                errors::INVALID_GAME_ID,
+                StatusCode::NOT_FOUND,
+            ));
+        }
+        Ok(())
     }
 }
 

@@ -17,7 +17,7 @@ mod state;
 // is this poor design? maybe the tests that require these
 // should be in this module rather than in the top-level
 // tests module.
-pub use entities::{member, session};
+pub use entities::{game, member, session};
 pub use packet::Response;
 
 pub fn app(database: DatabaseConnection) -> Router {
