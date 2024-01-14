@@ -24,9 +24,14 @@
     in {
       devShells.default = pkgs.mkShell {
         buildInputs = with pkgs.darwin.apple_sdk; [
+          # Rust
           rust-stable
-          pkgs.postgresql
           frameworks.SystemConfiguration
+          # Node
+          pkgs.nodejs-18_x
+          pkgs.nodePackages.npm
+          # Other
+          pkgs.postgresql
         ];
 
         DATABASE_URL = "postgres://othello-server:password@0.0.0.0:5432/othello-server";
