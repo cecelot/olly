@@ -36,7 +36,6 @@
 
         DATABASE_URL = "postgres://othello-server:password@0.0.0.0:5432/othello-server";
 
-        # Yes, these are plaintext database credentials. It makes local development easier.
         shellHook = ''
           export PATH="$PATH:$HOME/.local/share/cargo/bin"
         '';
