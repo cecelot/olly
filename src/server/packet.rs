@@ -146,7 +146,7 @@ impl Packet {
         let mut rooms = state.rooms.lock().expect("mutex was poisoned");
         games.insert(id, game);
         rooms.insert(id, tx);
-        Ok(Response::Created { id: id.to_string() })
+        Ok(Response::GameCreate { id: id.to_string() })
     }
 
     async fn join(
@@ -184,7 +184,7 @@ impl Packet {
                 let _ = sender.send(update).await;
             }
         });
-        Ok(Response::State(game.clone()))
+        Ok(Response::GameUpdate { game: game.clone() })
     }
 
     async fn place(&self, state: &AppState) -> Result<Response, Response> {
@@ -209,9 +209,9 @@ impl Packet {
         ))?;
         let res = game.place(x, y, piece).map_or_else(
             |e| Err(Response::error(&e.to_string(), StatusCode::BAD_REQUEST)),
-            |_| Ok(Response::Ok),
+            |_| Ok(Response::Ack),
         )?;
-        let _ = tx.send(Response::State(game.clone()));
+        let _ = tx.send(Response::GameUpdate { game: game.clone() });
         Ok(res)
     }
 }
@@ -358,11 +358,11 @@ impl Packet {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Response {
-    Error { message: String, code: u16 },
-    Created { id: String },
+    Ack,
     Ready { token: String },
-    State(Game),
-    Ok,
+    GameCreate { id: String },
+    GameUpdate { game: Game },
+    Error { message: String, code: u16 },
 }
 
 impl Response {

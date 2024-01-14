@@ -1,5 +1,4 @@
-use super::Response;
-use crate::Game;
+use crate::{server::SocketResponse, Game};
 use sea_orm::DatabaseConnection;
 use std::{
     collections::HashMap,
@@ -11,7 +10,7 @@ use uuid::Uuid;
 #[derive(Clone)]
 pub struct AppState {
     pub(super) games: Arc<Mutex<HashMap<Uuid, Game>>>,
-    pub(super) rooms: Arc<Mutex<HashMap<Uuid, broadcast::Sender<Response>>>>,
+    pub(super) rooms: Arc<Mutex<HashMap<Uuid, broadcast::Sender<SocketResponse>>>>,
     pub(super) database: Arc<DatabaseConnection>,
 }
 

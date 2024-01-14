@@ -1,4 +1,4 @@
-use crate::server::{errors, packet::Packet, state::AppState, Response};
+use crate::server::{errors, packet::Packet, state::AppState, SocketResponse};
 use axum::{
     extract::ws::{Message, WebSocket},
     http::StatusCode,
@@ -7,7 +7,7 @@ use futures::{SinkExt, StreamExt};
 use std::{sync::Arc, time::Duration};
 use tokio::sync::mpsc;
 
-async fn send(socket: &mut (impl SinkExt<Message> + Unpin), resp: Response) {
+async fn send(socket: &mut (impl SinkExt<Message> + Unpin), resp: SocketResponse) {
     let text = serde_json::to_string(&resp).unwrap();
     let _ = socket.send(Message::Text(text)).await;
 }
@@ -19,16 +19,16 @@ async fn authenticate(
 ) -> Option<String> {
     match Packet::try_from(msg) {
         Ok(packet) => match packet.process(state, None).await {
-            Response::Ready { token } => Some(token),
-            Response::Error { message, code } => {
-                let resp = Response::error(&message, StatusCode::from_u16(code).unwrap());
+            SocketResponse::Ready { token } => Some(token),
+            SocketResponse::Error { message, code } => {
+                let resp = SocketResponse::error(&message, StatusCode::from_u16(code).unwrap());
                 send(socket, resp).await;
                 None
             }
             _ => panic!("packet processed by handler other than identify"),
         },
         Err(e) => {
-            let resp = Response::error(&e.to_string(), StatusCode::BAD_REQUEST);
+            let resp = SocketResponse::error(&e.to_string(), StatusCode::BAD_REQUEST);
             send(socket, resp).await;
             None
         }
@@ -42,7 +42,7 @@ pub async fn callback(mut socket: WebSocket, state: Arc<AppState>) {
         Ok(Some(Ok(msg))) => {
             if let Some(token) = authenticate(&mut socket, &msg, &state).await {
                 let (mut tx, mut rx) = socket.split();
-                let (sender, mut receiver) = mpsc::channel::<Response>(16);
+                let (sender, mut receiver) = mpsc::channel::<SocketResponse>(16);
                 // Forward messages from the mpsc channel to the websocket sink.
                 tokio::spawn(async move {
                     while let Some(resp) = receiver.recv().await {
@@ -53,12 +53,12 @@ pub async fn callback(mut socket: WebSocket, state: Arc<AppState>) {
                     }
                 });
                 // Let the client know that they are ready to receive messages.
-                let _ = sender.send(Response::Ready { token }).await;
+                let _ = sender.send(SocketResponse::Ready { token }).await;
                 // Listen for incoming messages from the client.
                 while let Some(Ok(msg)) = rx.next().await {
                     let resp = match Packet::try_from(&msg) {
                         Ok(packet) => packet.process(&state, Some(sender.clone())).await,
-                        Err(e) => Response::error(&e.to_string(), StatusCode::BAD_REQUEST),
+                        Err(e) => SocketResponse::error(&e.to_string(), StatusCode::BAD_REQUEST),
                     };
                     let _ = sender.send(resp).await;
                 }
@@ -72,7 +72,7 @@ pub async fn callback(mut socket: WebSocket, state: Arc<AppState>) {
         Err(_) => {
             let _ = send(
                 &mut socket,
-                Response::error(errors::IDENTIFY_TIMEOUT, StatusCode::REQUEST_TIMEOUT),
+                SocketResponse::error(errors::IDENTIFY_TIMEOUT, StatusCode::REQUEST_TIMEOUT),
             )
             .await;
             let _ = socket.close().await;

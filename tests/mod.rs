@@ -1,7 +1,7 @@
 // // TODO: Figure out a robust testing solution.
 // // use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
 // use futures::{SinkExt, StreamExt};
-// use othello::server::{/* member, */ Response};
+// use othello::server::{/* member, */ SocketResponse};
 // // use rand::rngs::OsRng;
 // // use reqwest::StatusCode;
 // use sea_orm::{Database /* DatabaseBackend, MockDatabase, MockExecResult */};
@@ -97,9 +97,9 @@
 //                 "guest": "unicorn"
 //             }, "t": self.token.clone().unwrap() }))
 //             .await;
-//         assert!(matches!(msg, Response::Created { .. }));
+//         assert!(matches!(msg, SocketResponse::GameCreate { .. }));
 //         match msg {
-//             Response::Created { id } => id,
+//             SocketResponse::GameCreate { id } => id,
 //             _ => panic!("expected a created message but got {msg:?}"),
 //         }
 //     }
@@ -114,20 +114,20 @@
 //                 }
 //             }))
 //             .await;
-//         assert!(matches!(msg, Response::Ready { .. }));
+//         assert!(matches!(msg, SocketResponse::Ready { .. }));
 //         self.token = match msg {
-//             Response::Ready { token } => Some(token),
+//             SocketResponse::Ready { token } => Some(token),
 //             _ => panic!("expected a ready message but got {msg:?}"),
 //         };
 //     }
 
-//     async fn send(&mut self, msg: Value) -> Response {
+//     async fn send(&mut self, msg: Value) -> SocketResponse {
 //         let string = serde_json::to_string(&msg).unwrap();
 //         self.socket.send(Message::text(string)).await.unwrap();
 //         self.receive().await
 //     }
 
-//     async fn receive(&mut self) -> Response {
+//     async fn receive(&mut self) -> SocketResponse {
 //         match self.socket.next().await.unwrap().unwrap() {
 //             Message::Text(msg) => serde_json::from_str(&msg).unwrap(),
 //             other => panic!("expected a text message but got {other:?}"),
@@ -146,7 +146,7 @@
 //     let msg = context.receive().await;
 //     assert_eq!(
 //         msg,
-//         Response::Error {
+//         SocketResponse::Error {
 //             message: "connection timed out".into(),
 //             code: 408
 //         }
@@ -201,7 +201,7 @@
 //         .await;
 //     assert_eq!(
 //         msg,
-//         Response::Error {
+//         SocketResponse::Error {
 //             message: "board square (3, 3) is occupied".into(),
 //             code: 400
 //         }
@@ -223,7 +223,7 @@
 //         }))
 //         .await;
 //     dbg!(&initial);
-//     assert!(matches!(initial, Response::State(..)));
+//     assert!(matches!(initial, SocketResponse::GameUpdate { .. }));
 //     let placed = context
 //         .send(json!({
 //             "op": 2,
@@ -236,8 +236,8 @@
 //             }
 //         }))
 //         .await;
-//     assert!(matches!(placed, Response::Ok));
+//     assert!(matches!(placed, SocketResponse::Ack));
 //     let updated = context.receive().await;
 //     dbg!(&updated);
-//     assert!(matches!(updated, Response::State(..)));
+//     assert!(matches!(updated, SocketResponse::GameUpdate { .. }));
 // }

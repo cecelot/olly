@@ -2,7 +2,7 @@ use crate::server::{
     entities::{member, prelude::*},
     errors,
     state::AppState,
-    Response,
+    HttpResponse,
 };
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
@@ -11,6 +11,7 @@ use argon2::{
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use sea_orm::{ActiveValue, DbErr, EntityTrait, RuntimeErr};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -33,8 +34,8 @@ pub async fn register(
         Err(e) => {
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(Response::error(
-                    &e.to_string(),
+                Json(HttpResponse::new(
+                    e.to_string(),
                     StatusCode::INTERNAL_SERVER_ERROR,
                 )),
             )
@@ -51,9 +52,10 @@ pub async fn register(
     match model {
         Ok(model) => (
             StatusCode::CREATED,
-            Json(Response::Created {
-                id: model.last_insert_id.to_string(),
-            }),
+            Json(HttpResponse::new(
+                json!({"id": model.last_insert_id.to_string() }),
+                StatusCode::CREATED,
+            )),
         ),
         Err(e) => match e {
             DbErr::Exec(RuntimeErr::SqlxError(e))
@@ -62,7 +64,7 @@ pub async fn register(
             {
                 (
                     StatusCode::CONFLICT,
-                    Json(Response::error(
+                    Json(HttpResponse::new(
                         errors::USERNAME_TAKEN,
                         StatusCode::CONFLICT,
                     )),
@@ -70,8 +72,8 @@ pub async fn register(
             }
             _ => (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(Response::error(
-                    &e.to_string(),
+                Json(HttpResponse::new(
+                    e.to_string(),
                     StatusCode::INTERNAL_SERVER_ERROR,
                 )),
             ),
