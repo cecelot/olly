@@ -66,7 +66,7 @@ export default function Play() {
 
   return (
     <div class="flex flex-row flex-wrap-reverse bg-slate-900">
-      <div class="flex flex-col min-h-screen items-center p-5">
+      <div class="flex flex-col max-h-screen items-center p-5">
         <For each={board}>
           {(arr, row) => (
             <div class="flex flex-row">
