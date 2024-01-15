@@ -217,13 +217,12 @@ impl Packet {
         };
         // Verify that the authenticated user is either the host or guest of the game.
         self.ensure_participant(state, id).await?;
-        let games = state.games.lock().expect("mutex was poisoned");
+        let mut games = state.games.lock().expect("mutex was poisoned");
         let uuid = Uuid::from_str(id)
             .map_err(|_| Event::error(errors::INVALID_GAME_ID_FORMAT, StatusCode::BAD_REQUEST))?;
         let game = games
-            .get(&uuid)
+            .get_mut(&uuid)
             .ok_or(Event::error(errors::INVALID_GAME_ID, StatusCode::NOT_FOUND))?;
-        let mut game = game.clone();
         game.preview(x, y, piece).map_or_else(
             |e| Err(Event::error(&e.to_string(), StatusCode::BAD_REQUEST)),
             |changed| {
