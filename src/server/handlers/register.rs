@@ -29,11 +29,11 @@ pub struct Registration {
 pub async fn register(
     State(state): State<Arc<AppState>>,
     body: Result<Json<Registration>, JsonRejection>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, impl IntoResponse> {
     let (username, password) = match body {
         Ok(body) => (body.username.clone(), body.password.clone()),
         Err(e) => {
-            return (
+            return Err((
                 StatusCode::BAD_REQUEST,
                 Json(HttpResponse::new(
                     e.body_text().replace(
@@ -42,7 +42,7 @@ pub async fn register(
                     ),
                     StatusCode::BAD_REQUEST,
                 )),
-            )
+            ))
         }
     };
     let id = Uuid::now_v7();
@@ -51,13 +51,13 @@ pub async fn register(
     let hashed = match argon2.hash_password(password.as_bytes(), &salt) {
         Ok(hashed) => hashed.to_string(),
         Err(e) => {
-            return (
+            return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(HttpResponse::new(
                     e.to_string(),
                     StatusCode::INTERNAL_SERVER_ERROR,
                 )),
-            )
+            ))
         }
     };
     let registration = member::ActiveModel {
@@ -69,33 +69,33 @@ pub async fn register(
         .exec(state.database.as_ref())
         .await;
     match model {
-        Ok(model) => (
+        Ok(model) => Ok((
             StatusCode::CREATED,
             Json(HttpResponse::new(
                 json!({"id": model.last_insert_id.to_string() }),
                 StatusCode::CREATED,
             )),
-        ),
+        )),
         Err(e) => match e {
             DbErr::Exec(RuntimeErr::SqlxError(e))
                 if e.as_database_error()
                     .is_some_and(|e| e.code().is_some_and(|code| code == "23505")) =>
             {
-                (
+                Err((
                     StatusCode::CONFLICT,
                     Json(HttpResponse::new(
-                        errors::USERNAME_TAKEN,
+                        errors::USERNAME_TAKEN.into(),
                         StatusCode::CONFLICT,
                     )),
-                )
+                ))
             }
-            _ => (
+            _ => Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(HttpResponse::new(
                     e.to_string(),
                     StatusCode::INTERNAL_SERVER_ERROR,
                 )),
-            ),
+            )),
         },
     }
 }

@@ -6,15 +6,10 @@ use crate::{
     },
     Game, Piece,
 };
-use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::{extract::ws::Message, http::StatusCode};
-use base64::Engine;
 use futures::Future;
-use rand::RngCore;
-use sea_orm::{
-    sea_query::OnConflict, ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, QueryFilter,
-};
-use serde::{de::Error, Deserialize, Serialize};
+use sea_orm::{ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, QueryFilter};
+use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::str::FromStr;
 use tokio::sync::{broadcast, mpsc};
@@ -24,16 +19,13 @@ use uuid::Uuid;
 pub struct Packet {
     op: Opcode,
     d: Data,
-    t: Option<String>,
+    t: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 enum Data {
-    Identify {
-        username: String,
-        password: String,
-    },
+    Identify,
     Place {
         id: String,
         x: usize,
@@ -74,12 +66,7 @@ impl TryFrom<&Message> for Packet {
     fn try_from(msg: &Message) -> Result<Self, Self::Error> {
         let s = msg.to_text().map_err(|_| ParseError::InvalidUtf8)?;
         let packet: Self = serde_json::from_str(s).map_err(ParseError::Json)?;
-        match packet.op {
-            op if !matches!(op, Opcode::Identify) && packet.t.is_none() => {
-                Err(ParseError::Json(serde_json::Error::missing_field("t")))
-            }
-            _ => Ok(packet),
-        }
+        Ok(packet)
     }
 }
 
@@ -101,23 +88,9 @@ impl Packet {
     }
 
     async fn identify(&self, state: &AppState) -> Result<Event, Event> {
-        let (username, password) = match &self.d {
-            Data::Identify { username, password } => (username, password),
-            _ => panic!("expected serde to reject invalid packet data"),
-        };
-        let user = self.user(state, username).await?;
-        self.ensure_valid_password(&user, password).await?;
-        // Generate a random key to use as the session token.
-        let key = {
-            let mut dst = [0; 32];
-            // ThreadRng satisfies the CryptoRng trait, so
-            // it should be cryptographically secure. TODO:
-            // look into a more secure key generation method.
-            rand::thread_rng().fill_bytes(&mut dst);
-            base64::prelude::BASE64_STANDARD.encode(dst)
-        };
-        let token = self.create_session(state, &user, key).await?;
-        Ok(Event::new(EventKind::Ready, EventData::Ready { token }))
+        // Verify that the token is valid.
+        self.current_user(state).await?;
+        Ok(Event::new(EventKind::Ready, EventData::Ready))
     }
 
     async fn create(&self, state: &AppState) -> Result<Event, Event> {
@@ -254,36 +227,9 @@ impl Packet {
 
 // A collection of helper functions for performing database operations.
 impl Packet {
-    async fn create_session(
-        &self,
-        state: &AppState,
-        user: &member::Model,
-        key: String,
-    ) -> Result<String, Event> {
-        match entities::Session::insert(session::ActiveModel {
-            id: ActiveValue::set(user.id),
-            key: ActiveValue::set(key.clone()),
-        })
-        .on_conflict(
-            OnConflict::column(session::Column::Id)
-                .update_column(session::Column::Key)
-                .to_owned(),
-        )
-        .exec(state.database.as_ref())
-        .await
-        {
-            Ok(_) => Ok(key),
-            Err(e) => Err(Event::error(
-                &e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )),
-        }
-    }
-
     async fn current_user(&self, state: &AppState) -> Result<String, Event> {
-        let token = self.t.as_ref().unwrap();
         let session = entities::Session::find()
-            .filter(session::Column::Key.eq(token))
+            .filter(session::Column::Key.eq(&self.t))
             .one(state.database.as_ref())
             .await;
         match session {
@@ -297,21 +243,9 @@ impl Packet {
     }
 
     async fn user(&self, state: &AppState, username: &String) -> Result<member::Model, Event> {
-        match entities::Member::find()
-            .filter(member::Column::Username.eq(username))
-            .one(state.database.as_ref())
+        crate::server::helpers::get_user(state, username)
             .await
-        {
-            Ok(Some(user)) => Ok(user),
-            Ok(None) => Err(Event::error(
-                errors::INVALID_USERNAME,
-                StatusCode::NOT_FOUND,
-            )),
-            Err(e) => Err(Event::error(
-                &e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )),
-        }
+            .map_err(|(message, code)| Event::error(&message, code))
     }
 
     async fn game(&self, state: &AppState, id: &str) -> Result<game::Model, Event> {
@@ -333,26 +267,6 @@ impl Packet {
 
 // A collection of helper functions for validating data.
 impl Packet {
-    async fn ensure_valid_password(
-        &self,
-        user: &member::Model,
-        password: &str,
-    ) -> Result<(), Event> {
-        let hashed = PasswordHash::new(user.password.as_str())
-            .map_err(|_| Event::error(errors::INVALID_PASSWORD_FORMAT, StatusCode::BAD_REQUEST))?;
-        if Argon2::default()
-            .verify_password(password.as_bytes(), &hashed)
-            .is_err()
-        {
-            Err(Event::error(
-                errors::INVALID_PASSWORD,
-                StatusCode::FORBIDDEN,
-            ))
-        } else {
-            Ok(())
-        }
-    }
-
     async fn ensure_participant(&self, state: &AppState, id: &str) -> Result<(), Event> {
         let user = self.current_user(state).await?;
         let game = self.game(state, id).await?;
@@ -384,7 +298,7 @@ pub enum EventKind {
 #[serde(untagged)]
 pub enum EventData {
     Ack,
-    Ready { token: String },
+    Ready,
     GameCreate { id: String },
     GameUpdate { game: Game },
     GameUpdatePreview { changed: Vec<(usize, usize)> },

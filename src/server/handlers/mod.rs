@@ -1,27 +1,33 @@
 use axum::{http::StatusCode, Json};
 use serde::{Deserialize, Serialize};
 
-pub mod live;
-pub mod register;
+mod live;
+mod login;
+mod logout;
+mod me;
+mod register;
 
 pub use live::callback;
+pub use login::login;
+pub use logout::logout;
+pub use me::me;
 pub use register::register;
 
 #[derive(Serialize, Deserialize)]
-pub struct Response {
-    message: String,
+pub struct Response<S: Serialize> {
+    message: S,
     code: u16,
 }
 
-impl Response {
-    pub fn new<S: Serialize>(message: S, code: StatusCode) -> Self {
+impl<S: Serialize> Response<S> {
+    pub fn new(message: S, code: StatusCode) -> Self {
         Self {
-            message: serde_json::to_string(&message).unwrap(),
+            message,
             code: u16::from(code),
         }
     }
 }
 
-pub async fn fallback() -> Json<Response> {
+pub async fn fallback() -> Json<Response<&'static str>> {
     Response::new("not found", StatusCode::NOT_FOUND).into()
 }

@@ -21,10 +21,10 @@ async fn authenticate(
     socket: &mut (impl SinkExt<Message> + Unpin),
     msg: &Message,
     state: &Arc<AppState>,
-) -> Option<String> {
+) -> Option<()> {
     match Packet::try_from(msg) {
         Ok(packet) => match packet.process(state, None).await.data() {
-            EventData::Ready { token } => Some(token.to_string()),
+            EventData::Ready => Some(()),
             EventData::Error { message, code } => {
                 let resp = SocketEvent::error(message, StatusCode::from_u16(*code).unwrap());
                 send(socket, resp).await;
@@ -45,7 +45,7 @@ pub async fn callback(mut socket: WebSocket, state: Arc<AppState>) {
     let req = tokio::time::timeout(duration, socket.recv()).await;
     match req {
         Ok(Some(Ok(msg))) => {
-            if let Some(token) = authenticate(&mut socket, &msg, &state).await {
+            if let Some(()) = authenticate(&mut socket, &msg, &state).await {
                 let (mut tx, mut rx) = socket.split();
                 let (sender, mut receiver) = mpsc::channel::<SocketEvent>(16);
                 // Forward messages from the mpsc channel to the websocket sink.
@@ -59,10 +59,7 @@ pub async fn callback(mut socket: WebSocket, state: Arc<AppState>) {
                 });
                 // Let the client know that they are ready to receive messages.
                 let _ = sender
-                    .send(SocketEvent::new(
-                        EventKind::Ready,
-                        EventData::Ready { token },
-                    ))
+                    .send(SocketEvent::new(EventKind::Ready, EventData::Ready))
                     .await;
                 // Listen for incoming messages from the client.
                 while let Some(Ok(msg)) = rx.next().await {

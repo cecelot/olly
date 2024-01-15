@@ -6,3 +6,4 @@ pub const USERNAME_TAKEN: &str = "that username is already taken";
 pub const INVALID_PASSWORD_FORMAT: &str = "password failed to hash correctly";
 pub const INVALID_PASSWORD: &str = "password does not match";
 pub const INVALID_TOKEN: &str = "invalid user token";
+pub const SESSION_COOKIE_NAME: &str = "sid";
