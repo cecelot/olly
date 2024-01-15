@@ -38,6 +38,16 @@ impl Game {
         Ok(())
     }
 
+    pub fn preview(
+        &mut self,
+        x: usize,
+        y: usize,
+        piece: Piece,
+    ) -> Result<Vec<(usize, usize)>, PlaceError> {
+        self.validate(x, y, piece)?;
+        Ok(self.board.flip(x, y, piece, false))
+    }
+
     fn validate(&mut self, x: usize, y: usize, piece: Piece) -> Result<(), PlaceError> {
         if x >= Board::width() || y >= Board::width() {
             Err(PlaceError::OutOfBounds(x, y))
@@ -50,7 +60,9 @@ impl Game {
                 (false, _, _) => Err(PlaceError::Turn(piece)),
                 (_, false, _) => Err(PlaceError::NotAdjacent(x, y)),
                 (_, _, false) => Err(PlaceError::Occupied(x, y)),
-                _ if self.board.flip(x, y, piece, false) == 0 => Err(PlaceError::NoFlips(x, y)),
+                _ if self.board.flip(x, y, piece, false).is_empty() => {
+                    Err(PlaceError::NoFlips(x, y))
+                }
                 _ => Ok(()),
             }
         }
@@ -92,6 +104,13 @@ mod tests {
         let mut state = Game::new();
         let moves = state.moves(Piece::Black);
         assert_eq!(moves.len(), 4);
+    }
+
+    #[test]
+    fn flips_preview() {
+        let mut state = Game::new();
+        let flips = state.preview(2, 3, Piece::Black);
+        assert_eq!(flips.unwrap(), vec![(3, 3)])
     }
 
     #[test]

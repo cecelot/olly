@@ -57,6 +57,7 @@ enum Opcode {
     Leave,
     Reset,
     Identify,
+    Preview,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -88,6 +89,7 @@ impl Packet {
             Opcode::Identify => self.identify(state).await,
             Opcode::Create => self.authenticated(state, |p| p.create(state)).await,
             Opcode::Place => self.authenticated(state, |p| p.place(state)).await,
+            Opcode::Preview => self.authenticated(state, |p| p.preview(state)).await,
             Opcode::Join => {
                 self.authenticated(state, |p| p.join(state, sender.expect("missing sender")))
                     .await
@@ -206,6 +208,31 @@ impl Packet {
             EventData::GameUpdate { game: game.clone() },
         ));
         Ok(res)
+    }
+
+    async fn preview(&self, state: &AppState) -> Result<Event, Event> {
+        let (id, &x, &y, &piece) = match &self.d {
+            Data::Place { id, x, y, piece } => (id, x, y, piece),
+            _ => panic!("expected serde to reject invalid packet data"),
+        };
+        // Verify that the authenticated user is either the host or guest of the game.
+        self.ensure_participant(state, id).await?;
+        let games = state.games.lock().expect("mutex was poisoned");
+        let uuid = Uuid::from_str(id)
+            .map_err(|_| Event::error(errors::INVALID_GAME_ID_FORMAT, StatusCode::BAD_REQUEST))?;
+        let game = games
+            .get(&uuid)
+            .ok_or(Event::error(errors::INVALID_GAME_ID, StatusCode::NOT_FOUND))?;
+        let mut game = game.clone();
+        game.preview(x, y, piece).map_or_else(
+            |e| Err(Event::error(&e.to_string(), StatusCode::BAD_REQUEST)),
+            |changed| {
+                Ok(Event::new(
+                    EventKind::GameUpdatePreview,
+                    EventData::GameUpdatePreview { changed },
+                ))
+            },
+        )
     }
 }
 
@@ -350,6 +377,7 @@ pub enum EventKind {
     Ready,
     GameCreate,
     GameUpdate,
+    GameUpdatePreview,
     Error,
 }
 
@@ -360,6 +388,7 @@ pub enum EventData {
     Ready { token: String },
     GameCreate { id: String },
     GameUpdate { game: Game },
+    GameUpdatePreview { changed: Vec<(usize, usize)> },
     Error { message: String, code: u16 },
 }
 

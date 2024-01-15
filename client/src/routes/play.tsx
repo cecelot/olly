@@ -6,6 +6,7 @@ import {
   handleErrorEvent,
   handleGameCreate,
   handleGameUpdate,
+  handlePreviewEvent,
   handleReady,
 } from "~/handlers";
 import Square from "~/components/Square";
@@ -27,6 +28,7 @@ export default function Play() {
   const [token, setToken] = createSignal<string>("...");
   const [gameId, setGameId] = createSignal<string>("...");
   const [ws, setWebSocket] = createSignal<WebSocket>();
+  const [preview, setPreview] = createSignal<Array<[number, number]>>();
 
   createEffect(() => {
     const ws = createWS("ws://0.0.0.0:3000/live");
@@ -39,18 +41,20 @@ export default function Play() {
         2: handleReady,
         3: handleGameCreate,
         4: handleGameUpdate,
-        5: handleErrorEvent,
+        5: handlePreviewEvent,
+        6: handleErrorEvent,
       } as const;
-      console.log(data);
-      handlers[data.op](
+      handlers[data.op]({
         ws,
-        data as any,
+        //@ts-expect-error
+        ev: data as any,
+        board,
+        token,
         setToken,
         setGameId,
         setTurn,
-        board,
-        token
-      );
+        setPreview,
+      });
     });
     ws.send(
       JSON.stringify({
@@ -74,8 +78,30 @@ export default function Play() {
                 {([piece], col) => (
                   <Square
                     piece={piece()}
+                    turn={turn()}
+                    preview={preview()?.some(
+                      ([x, y]) => x === col() && y === row()
+                    )}
                     row={row()}
                     col={col()}
+                    onMouseEnter={() => {
+                      ws()!!.send(
+                        JSON.stringify({
+                          op: 7,
+                          t: token(),
+                          d: {
+                            type: "Place",
+                            id: gameId(),
+                            x: col(),
+                            y: row(),
+                            piece: turn() === Piece.Black ? "Black" : "White",
+                          },
+                        })
+                      );
+                    }}
+                    onMouseLeave={() => {
+                      setPreview(undefined);
+                    }}
                     onClick={() => {
                       ws()!!.send(
                         JSON.stringify({

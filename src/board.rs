@@ -70,10 +70,10 @@ impl Board {
             .any(|(x, y)| self[(x, y)].is_some()))
     }
 
-    pub fn flip(&mut self, x: usize, y: usize, piece: Piece, update: bool) -> usize {
+    pub fn flip(&mut self, x: usize, y: usize, piece: Piece, update: bool) -> Vec<(usize, usize)> {
         // Calling code ensures that x and y are within bounds.
         assert!(x < Self::width() && y < Self::width());
-        let mut flips = 0;
+        let mut flips = vec![];
         let (x, y) = crate::convert(x, y);
         for (dx, dy) in DIRECTIONS {
             if self.on((x, y), (dx, dy), piece) {
@@ -86,7 +86,7 @@ impl Board {
                         Some(p) if p == opponent => {
                             let piece = if update { Some(piece) } else { self[cur] };
                             self[cur] = {
-                                flips += 1;
+                                flips.push(cur);
                                 piece
                             };
                             x += dx;
@@ -106,11 +106,14 @@ impl Board {
         let mut y = y + dy;
         while self.within_bounds(x, y) {
             let cur = crate::convert(x, y);
-            if self[cur].is_some_and(|square| piece == square) {
-                return true;
+            match self[cur] {
+                Some(p) if p == !piece => {
+                    x += dx;
+                    y += dy;
+                }
+                Some(p) if p == piece => return true,
+                _ => break,
             }
-            x += dx;
-            y += dy;
         }
         false
     }

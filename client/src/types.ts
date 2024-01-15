@@ -1,4 +1,4 @@
-import { Signal } from "solid-js";
+import { Accessor, Signal } from "solid-js";
 
 export enum Piece {
   Black,
@@ -35,8 +35,15 @@ export interface GameUpdateEvent {
   };
 }
 
-export interface ErrorEvent {
+export interface PreviewEvent {
   op: 5;
+  d: {
+    changed: Array<[number, number]>;
+  };
+}
+
+export interface ErrorEvent {
+  op: 6;
   d: {
     message: string;
     code: number;
@@ -48,4 +55,16 @@ export type Event =
   | ReadyEvent
   | GameCreateEvent
   | GameUpdateEvent
-  | ErrorEvent;
+  | ErrorEvent
+  | PreviewEvent;
+
+export interface Context<T> {
+  ws: WebSocket;
+  ev: T;
+  board: Board;
+  token: Accessor<string | undefined>;
+  setToken: (token: string) => void;
+  setGameId: (gameId: string) => void;
+  setTurn: (turn: Piece) => void;
+  setPreview: (preview: Array<[number, number]> | undefined) => void;
+}

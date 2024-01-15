@@ -1,4 +1,3 @@
-import { Accessor, Setter } from "solid-js";
 import {
   GameCreateEvent,
   ReadyEvent,
@@ -7,27 +6,14 @@ import {
   GameUpdateEvent,
   AckEvent,
   ErrorEvent,
+  PreviewEvent,
+  Context,
 } from "~/types";
 
-export function handleAckEvent(
-  _ws: WebSocket,
-  _ev: AckEvent,
-  _setToken: Setter<string>,
-  _setGameId: Setter<string>,
-  _setTurn: Setter<Piece>,
-  _board: Board,
-  _token: Accessor<string>
-) {}
+export function handleAckEvent(_: Context<AckEvent>) {}
 
-export function handleReady(
-  ws: WebSocket,
-  ev: ReadyEvent,
-  setToken: Setter<string>,
-  _setGameId: Setter<string>,
-  _setTurn: Setter<Piece>,
-  _board: Board,
-  _token: Accessor<string | undefined>
-) {
+export function handleReady(context: Context<ReadyEvent>) {
+  const { ws, ev, setToken } = context;
   setToken(ev.d.token);
   ws.send(
     JSON.stringify({
@@ -38,15 +24,8 @@ export function handleReady(
   );
 }
 
-export function handleGameCreate(
-  ws: WebSocket,
-  ev: GameCreateEvent,
-  _setToken: Setter<string>,
-  setGameId: Setter<string>,
-  _setTurn: Setter<Piece>,
-  _board: Board,
-  token: Accessor<string | undefined>
-) {
+export function handleGameCreate(context: Context<GameCreateEvent>) {
+  const { ws, ev, setGameId, token } = context;
   setGameId(ev.d.id);
   ws.send(
     JSON.stringify({
@@ -60,15 +39,8 @@ export function handleGameCreate(
   );
 }
 
-export function handleGameUpdate(
-  _ws: WebSocket,
-  ev: GameUpdateEvent,
-  _setToken: Setter<string>,
-  _setGameId: Setter<string>,
-  setTurn: Setter<Piece>,
-  board: Board,
-  _token: Accessor<string | undefined>
-) {
+export function handleGameUpdate(context: Context<GameUpdateEvent>) {
+  const { ev, board, setTurn, setPreview } = context;
   const { board: gameBoard, turn } = ev.d.game;
   for (let i = 0; i < 64; i++) {
     const row = Math.floor(i / 8);
@@ -81,16 +53,12 @@ export function handleGameUpdate(
     }
   }
   setTurn(turn === "White" ? Piece.White : Piece.Black);
+  setPreview(undefined);
 }
 
-export function handleErrorEvent(
-  _ws: WebSocket,
-  ev: ErrorEvent,
-  _setToken: Setter<string>,
-  _setGameId: Setter<string>,
-  _setTurn: Setter<Piece>,
-  _board: Board,
-  _token: Accessor<string | undefined>
-) {
-  console.error(ev.d.message);
+export function handleErrorEvent(_: Context<ErrorEvent>) {}
+
+export function handlePreviewEvent(context: Context<PreviewEvent>) {
+  const { ev, setPreview } = context;
+  setPreview(ev.d.changed);
 }

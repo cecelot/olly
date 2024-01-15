@@ -1,13 +1,15 @@
 import { createEffect, createSignal } from "solid-js";
 
 interface CircleProps {
-  color: "white" | "black";
+  color: "white" | "black" | "faded-white" | "faded-black";
 }
 
 export default function Circle(props: CircleProps) {
   const fills = {
     white: "#e4e4e7",
     black: "#09090b",
+    "faded-white": "#cacacc",
+    "faded-black": "#696980",
   };
   const [fill, setFill] = createSignal(fills[props.color]);
 
