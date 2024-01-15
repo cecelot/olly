@@ -1,7 +1,6 @@
 import {
   GameCreateEvent,
   ReadyEvent,
-  Board,
   Piece,
   GameUpdateEvent,
   AckEvent,
@@ -13,12 +12,11 @@ import {
 export function handleAckEvent(_: Context<AckEvent>) {}
 
 export function handleReady(context: Context<ReadyEvent>) {
-  const { ws, ev, setToken } = context;
-  setToken(ev.d.token);
+  const { ws, token } = context;
   ws.send(
     JSON.stringify({
       op: 1,
-      t: ev.d.token,
+      t: token(),
       d: { type: "Create", guest: "unicorn" },
     })
   );

@@ -1,6 +1,7 @@
 import { For, Show, createEffect, createSignal } from "solid-js";
 import { createWS } from "@solid-primitives/websocket";
-import { Board, Piece, Event } from "~/types";
+import cookie from "cookie";
+import { Board, Piece, Event, Member } from "~/types";
 import {
   handleAckEvent,
   handleErrorEvent,
@@ -10,6 +11,7 @@ import {
   handleReady,
 } from "~/handlers";
 import Square from "~/components/Square";
+import { currentUser } from "~/lib/currentUser";
 
 function createBoard(): Board {
   let board: Board = [];
@@ -22,10 +24,10 @@ function createBoard(): Board {
   return board;
 }
 
-export default function Play() {
+function LiveBoard() {
   const board = createBoard();
   const [turn, setTurn] = createSignal<Piece>(Piece.Black);
-  const [token, setToken] = createSignal<string>("...");
+  const [token, setToken] = createSignal<string>();
   const [gameId, setGameId] = createSignal<string>("...");
   const [ws, setWebSocket] = createSignal<WebSocket>();
   const [preview, setPreview] = createSignal<Array<[number, number]>>();
@@ -33,7 +35,6 @@ export default function Play() {
   createEffect(() => {
     const ws = createWS("ws://0.0.0.0:3000/live");
     setWebSocket(ws);
-
     ws.addEventListener("message", (e) => {
       const data: Event = JSON.parse(e.data);
       const handlers = {
@@ -50,19 +51,18 @@ export default function Play() {
         ev: data as any,
         board,
         token,
-        setToken,
         setGameId,
         setTurn,
         setPreview,
       });
     });
+    setToken(cookie.parse(document.cookie).sid);
     ws.send(
       JSON.stringify({
         op: 6,
+        t: token(),
         d: {
           type: "Identify",
-          username: "alaidriel",
-          password: "meow",
         },
       })
     );
@@ -138,5 +138,29 @@ export default function Play() {
         </Show>
       </div>
     </div>
+  );
+}
+
+export default function Play() {
+  const [user, setUser] = createSignal<Member | null | undefined>(undefined);
+
+  createEffect(() => {
+    (async () => {
+      setUser(await currentUser());
+    })();
+  });
+
+  return (
+    <Show
+      when={user()}
+      fallback={(() => {
+        if (user() === null) {
+          window.location.href = "/login";
+        }
+        return <></>;
+      })()}
+    >
+      <LiveBoard />
+    </Show>
   );
 }

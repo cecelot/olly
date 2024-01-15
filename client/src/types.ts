@@ -5,6 +5,11 @@ export enum Piece {
   White,
 }
 
+export interface Member {
+  id: string;
+  username: string;
+}
+
 export type Board = Array<Array<Signal<Piece | undefined>>>;
 
 export interface AckEvent {
@@ -63,7 +68,6 @@ export interface Context<T> {
   ev: T;
   board: Board;
   token: Accessor<string | undefined>;
-  setToken: (token: string) => void;
   setGameId: (gameId: string) => void;
   setTurn: (turn: Piece) => void;
   setPreview: (preview: Array<[number, number]> | undefined) => void;
