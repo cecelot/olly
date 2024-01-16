@@ -19,6 +19,19 @@ impl Game {
         }
     }
 
+    pub fn score(&self) -> (usize, usize) {
+        let mut black = 0;
+        let mut white = 0;
+        for (x, y) in self.points() {
+            match self.board[(x, y)] {
+                Some(Piece::Black) => black += 1,
+                Some(Piece::White) => white += 1,
+                None => (),
+            }
+        }
+        (black, white)
+    }
+
     pub fn moves(&mut self, piece: Piece) -> Vec<(usize, usize)> {
         self.points()
             .into_iter()
@@ -97,6 +110,7 @@ mod tests {
     fn new() {
         let state = Game::new();
         assert_eq!(state.turn, Piece::Black);
+        assert_eq!(state.score(), (2, 2));
     }
 
     #[test]
