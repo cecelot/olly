@@ -1,8 +1,7 @@
 use crate::server::{
-    errors,
     packet::{EventData, EventKind, Packet},
     state::AppState,
-    SocketEvent,
+    strings, SocketEvent,
 };
 use axum::{
     extract::ws::{Message, WebSocket},
@@ -79,7 +78,7 @@ pub async fn callback(mut socket: WebSocket, state: Arc<AppState>) {
         Err(_) => {
             let _ = send(
                 &mut socket,
-                SocketEvent::error(errors::IDENTIFY_TIMEOUT, StatusCode::REQUEST_TIMEOUT),
+                SocketEvent::error(strings::IDENTIFY_TIMEOUT, StatusCode::REQUEST_TIMEOUT),
             )
             .await;
             let _ = socket.close().await;

@@ -1,14 +1,16 @@
 use crate::{
     server::{
-        entities::{game, member, prelude as entities, session},
-        errors,
+        entities::{game, member, prelude::Game as GameModel},
+        handlers::StringError,
+        helpers,
         state::AppState,
+        strings,
     },
     Game, Piece,
 };
 use axum::{extract::ws::Message, http::StatusCode};
 use futures::Future;
-use sea_orm::{ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{ActiveModelTrait, ActiveValue, EntityTrait};
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::str::FromStr;
@@ -131,18 +133,22 @@ impl Packet {
         // Verify that the authenticated user is either the host or guest of the game.
         self.ensure_participant(state, id).await?;
         let uuid = Uuid::from_str(id)
-            .map_err(|_| Event::error(errors::INVALID_GAME_ID_FORMAT, StatusCode::BAD_REQUEST))?;
+            .map_err(|_| Event::error(strings::INVALID_GAME_ID_FORMAT, StatusCode::BAD_REQUEST))?;
         // Subscribe to the broadcast channel for the specified room.
         let mut rooms = state.rooms.lock().expect("mutex was poisoned");
         let mut rx = rooms
             .get_mut(&uuid)
-            .ok_or(Event::error(errors::INVALID_GAME_ID, StatusCode::NOT_FOUND))?
+            .ok_or(Event::error(
+                strings::INVALID_GAME_ID,
+                StatusCode::NOT_FOUND,
+            ))?
             .subscribe();
         // Send the current state of the room.
         let games = state.games.lock().expect("mutex was poisoned");
-        let game = games
-            .get(&uuid)
-            .ok_or(Event::error(errors::INVALID_GAME_ID, StatusCode::NOT_FOUND))?;
+        let game = games.get(&uuid).ok_or(Event::error(
+            strings::INVALID_GAME_ID,
+            StatusCode::NOT_FOUND,
+        ))?;
         // Spawn a task to listen for room updates to broadcast.
         tokio::spawn(async move {
             while let Ok(update) = rx.recv().await {
@@ -165,13 +171,15 @@ impl Packet {
         let mut games = state.games.lock().expect("mutex was poisoned");
         let mut rooms = state.rooms.lock().expect("mutex was poisoned");
         let uuid = Uuid::from_str(id)
-            .map_err(|_| Event::error(errors::INVALID_GAME_ID_FORMAT, StatusCode::BAD_REQUEST))?;
-        let game = games
-            .get_mut(&uuid)
-            .ok_or(Event::error(errors::INVALID_GAME_ID, StatusCode::NOT_FOUND))?;
-        let tx = rooms
-            .get_mut(&uuid)
-            .ok_or(Event::error(errors::INVALID_GAME_ID, StatusCode::NOT_FOUND))?;
+            .map_err(|_| Event::error(strings::INVALID_GAME_ID_FORMAT, StatusCode::BAD_REQUEST))?;
+        let game = games.get_mut(&uuid).ok_or(Event::error(
+            strings::INVALID_GAME_ID,
+            StatusCode::NOT_FOUND,
+        ))?;
+        let tx = rooms.get_mut(&uuid).ok_or(Event::error(
+            strings::INVALID_GAME_ID,
+            StatusCode::NOT_FOUND,
+        ))?;
         let res = game.place(x, y, piece).map_or_else(
             |e| Err(Event::error(&e.to_string(), StatusCode::BAD_REQUEST)),
             |_| Ok(Event::new(EventKind::Ack, EventData::Ack)),
@@ -192,10 +200,11 @@ impl Packet {
         self.ensure_participant(state, id).await?;
         let mut games = state.games.lock().expect("mutex was poisoned");
         let uuid = Uuid::from_str(id)
-            .map_err(|_| Event::error(errors::INVALID_GAME_ID_FORMAT, StatusCode::BAD_REQUEST))?;
-        let game = games
-            .get_mut(&uuid)
-            .ok_or(Event::error(errors::INVALID_GAME_ID, StatusCode::NOT_FOUND))?;
+            .map_err(|_| Event::error(strings::INVALID_GAME_ID_FORMAT, StatusCode::BAD_REQUEST))?;
+        let game = games.get_mut(&uuid).ok_or(Event::error(
+            strings::INVALID_GAME_ID,
+            StatusCode::NOT_FOUND,
+        ))?;
         game.preview(x, y, piece).map_or_else(
             |e| Err(Event::error(&e.to_string(), StatusCode::BAD_REQUEST)),
             |changed| {
@@ -228,35 +237,26 @@ impl Packet {
 // A collection of helper functions for performing database operations.
 impl Packet {
     async fn current_user(&self, state: &AppState) -> Result<String, Event> {
-        let session = entities::Session::find()
-            .filter(session::Column::Key.eq(&self.t))
-            .one(state.database.as_ref())
-            .await;
-        match session {
-            Ok(Some(session)) => Ok(session.id.to_string()),
-            Ok(None) => Err(Event::error(errors::INVALID_TOKEN, StatusCode::FORBIDDEN)),
-            Err(e) => Err(Event::error(
-                &e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )),
-        }
+        helpers::get_session(state, &self.t)
+            .await
+            .map_err(|StringError(message, code)| Event::error(&message, code))
     }
 
-    async fn user(&self, state: &AppState, username: &String) -> Result<member::Model, Event> {
-        crate::server::helpers::get_user(state, username)
+    async fn user(&self, state: &AppState, username: &str) -> Result<member::Model, Event> {
+        helpers::get_user(state, username, true)
             .await
-            .map_err(|(message, code)| Event::error(&message, code))
+            .map_err(|StringError(message, code)| Event::error(&message, code))
     }
 
     async fn game(&self, state: &AppState, id: &str) -> Result<game::Model, Event> {
         let id = Uuid::from_str(id)
-            .map_err(|_| Event::error(errors::INVALID_GAME_ID_FORMAT, StatusCode::BAD_REQUEST))?;
-        match entities::Game::find_by_id(id)
-            .one(state.database.as_ref())
-            .await
-        {
+            .map_err(|_| Event::error(strings::INVALID_GAME_ID_FORMAT, StatusCode::BAD_REQUEST))?;
+        match GameModel::find_by_id(id).one(state.database.as_ref()).await {
             Ok(Some(game)) => Ok(game),
-            Ok(None) => Err(Event::error(errors::INVALID_GAME_ID, StatusCode::NOT_FOUND)),
+            Ok(None) => Err(Event::error(
+                strings::INVALID_GAME_ID,
+                StatusCode::NOT_FOUND,
+            )),
             Err(e) => Err(Event::error(
                 &e.to_string(),
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -271,7 +271,10 @@ impl Packet {
         let user = self.current_user(state).await?;
         let game = self.game(state, id).await?;
         if game.host != user && game.guest != user {
-            return Err(Event::error(errors::INVALID_GAME_ID, StatusCode::NOT_FOUND));
+            return Err(Event::error(
+                strings::INVALID_GAME_ID,
+                StatusCode::NOT_FOUND,
+            ));
         }
         Ok(())
     }

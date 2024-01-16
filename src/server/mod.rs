@@ -14,11 +14,11 @@ use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 
 mod entities;
-mod errors;
 mod handlers;
 mod helpers;
 mod packet;
 mod state;
+mod strings;
 
 // is this poor design? maybe the tests that require these
 // should be in this module rather than in the top-level
@@ -45,7 +45,7 @@ pub fn app(database: DatabaseConnection) -> Router {
         )
         .route("/@me", get(handlers::me).with_state(state))
         .fallback(handlers::fallback)
-        // TODO: Use a prper CORS policy.
+        // TODO: Use a proper CORS policy.
         .layer(CorsLayer::very_permissive())
 }
 
