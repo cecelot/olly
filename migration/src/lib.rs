@@ -9,7 +9,6 @@ mod m20240113_000006_non_null_guest;
 
 pub struct Migrator;
 
-#[async_trait::async_trait]
 impl MigratorTrait for Migrator {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         vec![

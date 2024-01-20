@@ -22,19 +22,27 @@
         extensions = ["rust-src"];
       };
     in {
-      devShells.default = pkgs.mkShell {
-        buildInputs = with pkgs.darwin.apple_sdk; [
+      devShells.default = with pkgs; pkgs.mkShell {
+        buildInputs = [
           # Rust
           rust-stable
-          frameworks.SystemConfiguration
           # Node
           pkgs.nodejs-18_x
           pkgs.nodePackages.npm
           # Other
           pkgs.postgresql
+          pkgs.docker
+        ] ++ (with pkgs.darwin.apple_sdk; lib.optionals stdenv.isDarwin [
+            # macOS SDKs
+            frameworks.SystemConfiguration
+        ]) ++ lib.optionals stdenv.isLinux [
+          pkgs.openssl
+          pkgs.pkg-config
         ];
 
         DATABASE_URL = "postgres://othello-server:password@0.0.0.0:5432/othello-server";
+        # OPENSSL_DIR = pkgs.openssl.dev;
+        PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
 
         shellHook = ''
           export PATH="$PATH:$HOME/.local/share/cargo/bin"
