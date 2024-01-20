@@ -15,65 +15,28 @@ pub async fn companion(
 
 #[cfg(test)]
 mod tests {
-    use crate::Game;
-    use reqwest::Client;
-    use sea_orm::Database;
-    use serde::{Deserialize, Serialize};
-    use serde_json::json;
-    use std::{
-        future::IntoFuture,
-        net::{Ipv4Addr, SocketAddr},
-    };
-    use tokio::net::TcpListener;
-
-    async fn init() -> String {
-        let listener = TcpListener::bind(SocketAddr::from((Ipv4Addr::UNSPECIFIED, 0)))
-            .await
-            .unwrap();
-        let addr = listener.local_addr().unwrap();
-        let database =
-            Database::connect("postgres://othello-server:password@0.0.0.0:5432/othello-server")
-                .await
-                .unwrap();
-        tokio::spawn(axum::serve(listener, crate::server::app(database)).into_future());
-        let body = json!({"username": "alaidriel", "password": "meow"});
-        let body = serde_json::to_string(&body).unwrap();
-        let _ = reqwest::Client::new()
-            .post(format!("http://{addr}/register"))
-            .header("Content-Type", "application/json")
-            .body(body)
-            .send()
-            .await;
-        format!("http://{}", addr)
-    }
-
-    async fn post<S: Serialize>(client: &Client, url: &str, endpoint: &str, body: S) -> String {
-        let res = client
-            .post(&format!("{url}{endpoint}"))
-            .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&body).unwrap())
-            .send()
-            .await
-            .unwrap();
-        res.text().await.unwrap()
+    #[derive(serde::Deserialize)]
+    struct Choice {
+        message: (usize, usize),
+        code: usize,
     }
 
     #[tokio::test]
     async fn new() {
-        let url = init().await;
-        let game = Game::new();
-        let client = Client::builder().cookie_store(true).build().unwrap();
-        let credentials = json!({
+        let database = sea_orm::Database::connect(
+            "postgres://othello-server:password@0.0.0.0:5432/othello-server",
+        )
+        .await
+        .unwrap();
+        let url = test_utils::init(crate::server::app(database)).await;
+        let client = test_utils::Client::new();
+        let game = crate::Game::new();
+        let credentials = serde_json::json!({
             "username": "alaidriel",
             "password": "meow"
         });
-        post(&client, &url, "/login", credentials).await;
-        let choice = post(&client, &url, "/companion", &game).await;
-        #[derive(Deserialize)]
-        struct Choice {
-            message: (usize, usize),
-            code: usize,
-        }
+        client.post(&url, "/login", credentials).await;
+        let choice = client.post(&url, "/companion", &game).await;
         let choice: Choice = serde_json::from_str(&choice).unwrap();
         assert_eq!(choice.code, 200);
         assert_eq!(choice.message, (5, 4));
