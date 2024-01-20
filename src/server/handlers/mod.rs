@@ -15,7 +15,7 @@ pub use logout::logout;
 pub use me::me;
 pub use register::register;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Response<S: Serialize> {
     message: S,
     code: u16,

@@ -1,11 +1,13 @@
 use axum::Router;
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Serialize};
 use serde_json::json;
 use std::{
     future::IntoFuture,
     net::{Ipv4Addr, SocketAddr},
 };
 use tokio::net::TcpListener;
+
+pub type Map = serde_json::Map<String, serde_json::Value>;
 
 pub struct Client {
     inner: reqwest::Client,
@@ -21,7 +23,12 @@ impl Client {
         }
     }
 
-    pub async fn post<S: Serialize>(&self, url: &str, endpoint: &str, body: S) -> String {
+    pub async fn post<S: Serialize, D: DeserializeOwned>(
+        &self,
+        url: &str,
+        endpoint: &str,
+        body: S,
+    ) -> D {
         let res = self
             .inner
             .post(&format!("{url}{endpoint}"))
@@ -30,7 +37,8 @@ impl Client {
             .send()
             .await
             .unwrap();
-        res.text().await.unwrap()
+        let text = res.text().await.unwrap();
+        serde_json::from_str(&text).unwrap()
     }
 }
 
@@ -48,7 +56,7 @@ pub async fn init(app: Router) -> String {
     tokio::spawn(axum::serve(listener, app).into_future());
     let url = format!("http://{}", addr);
     let client = Client::new();
-    let body = json!({"username": "alaidriel", "password": "meow"});
-    client.post(&url, "/register", body).await;
+    let body = json!({"username": "test", "password": "test"});
+    client.post::<_, Map>(&url, "/register", body).await;
     url
 }

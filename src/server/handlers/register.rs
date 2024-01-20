@@ -75,3 +75,44 @@ pub async fn register(
         StatusCode::CREATED,
     ))
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::server::handlers::Response;
+    use axum::http::StatusCode;
+
+    #[tokio::test]
+    async fn taken() {
+        let database = sea_orm::Database::connect(
+            "postgres://othello-server:password@localhost:5432/othello-server",
+        )
+        .await
+        .unwrap();
+        let url = test_utils::init(crate::server::app(database)).await;
+        let client = test_utils::Client::new();
+        let credentials = serde_json::json!({
+            "username": "test",
+            "password": "test"
+        });
+        let resp: Response<String> = client.post(&url, "/register", credentials).await;
+        assert_eq!(resp.code, StatusCode::CONFLICT);
+        assert_eq!(resp.message, "that username is already taken");
+    }
+
+    #[tokio::test]
+    async fn success() {
+        let database = sea_orm::Database::connect(
+            "postgres://othello-server:password@localhost:5432/othello-server",
+        )
+        .await
+        .unwrap();
+        let url = test_utils::init(crate::server::app(database)).await;
+        let client = test_utils::Client::new();
+        let credentials = serde_json::json!({
+            "username": "gandalf",
+            "password": "magic"
+        });
+        let resp: Response<String> = client.post(&url, "/register", credentials).await;
+        assert_eq!(resp.code, StatusCode::CREATED);
+    }
+}

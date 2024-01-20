@@ -32,12 +32,13 @@ mod tests {
         let client = test_utils::Client::new();
         let game = crate::Game::new();
         let credentials = serde_json::json!({
-            "username": "alaidriel",
-            "password": "meow"
+            "username": "test",
+            "password": "test"
         });
-        client.post(&url, "/login", credentials).await;
-        let choice = client.post(&url, "/companion", &game).await;
-        let choice: Choice = serde_json::from_str(&choice).unwrap();
+        client
+            .post::<_, test_utils::Map>(&url, "/login", credentials)
+            .await;
+        let choice: Choice = client.post(&url, "/companion", &game).await;
         assert_eq!(choice.code, 200);
         assert_eq!(choice.message, (5, 4));
     }
