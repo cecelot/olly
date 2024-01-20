@@ -126,9 +126,8 @@ impl Packet {
     }
 
     async fn join(&self, state: &AppState, sender: mpsc::Sender<Event>) -> Result<Event, Event> {
-        let id = match &self.d {
-            Data::Join { id } => id,
-            _ => panic!("expected serde to reject invalid packet data"),
+        let Data::Join { id } = &self.d else {
+            panic!("expected serde to reject invalid packet data")
         };
         // Verify that the authenticated user is either the host or guest of the game.
         self.ensure_participant(state, id).await?;
@@ -162,9 +161,8 @@ impl Packet {
     }
 
     async fn place(&self, state: &AppState) -> Result<Event, Event> {
-        let (id, &x, &y, &piece) = match &self.d {
-            Data::Place { id, x, y, piece } => (id, x, y, piece),
-            _ => panic!("expected serde to reject invalid packet data"),
+        let Data::Place { id, x, y, piece } = &self.d else {
+            panic!("expected serde to reject invalid packet data")
         };
         // Verify that the authenticated user is either the host or guest of the game.
         self.ensure_participant(state, id).await?;
@@ -180,9 +178,9 @@ impl Packet {
             strings::INVALID_GAME_ID,
             StatusCode::NOT_FOUND,
         ))?;
-        let res = game.place(x, y, piece).map_or_else(
+        let res = game.place(*x, *y, *piece).map_or_else(
             |e| Err(Event::error(&e.to_string(), StatusCode::BAD_REQUEST)),
-            |_| Ok(Event::new(EventKind::Ack, EventData::Ack)),
+            |()| Ok(Event::new(EventKind::Ack, EventData::Ack)),
         )?;
         let _ = tx.send(Event::new(
             EventKind::GameUpdate,
@@ -192,9 +190,8 @@ impl Packet {
     }
 
     async fn preview(&self, state: &AppState) -> Result<Event, Event> {
-        let (id, &x, &y, &piece) = match &self.d {
-            Data::Place { id, x, y, piece } => (id, x, y, piece),
-            _ => panic!("expected serde to reject invalid packet data"),
+        let Data::Place { id, x, y, piece } = &self.d else {
+            panic!("expected serde to reject invalid packet data")
         };
         // Verify that the authenticated user is either the host or guest of the game.
         self.ensure_participant(state, id).await?;
@@ -205,7 +202,7 @@ impl Packet {
             strings::INVALID_GAME_ID,
             StatusCode::NOT_FOUND,
         ))?;
-        game.preview(x, y, piece).map_or_else(
+        game.preview(*x, *y, *piece).map_or_else(
             |e| Err(Event::error(&e.to_string(), StatusCode::BAD_REQUEST)),
             |changed| {
                 Ok(Event::new(

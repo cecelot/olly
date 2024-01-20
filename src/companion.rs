@@ -18,27 +18,26 @@ impl Companion<'_> {
     pub fn choice(&mut self, depth: usize) -> (usize, usize) {
         let mut history = vec![];
         let mut root = self.game.clone();
-        self.negamax(&mut root, &mut history, depth, self.color);
+        Self::negamax(&mut root, &mut history, depth, self.color);
         let index = self.game.history().len();
-        history.get(index).cloned().unwrap()
+        history.get(index).copied().unwrap()
     }
 
     fn negamax(
-        &self,
         game: &mut Game,
         history: &mut Vec<(usize, usize)>,
         depth: usize,
         color: isize,
     ) -> isize {
         if depth == 0 || game.over() {
-            color * self.heuristic(game)
+            color * Self::heuristic(game)
         } else {
-            game.moves(self.player(color))
+            game.moves(Self::player(color))
                 .iter()
                 .fold(isize::MIN, |value, &(x, y)| {
                     let mut child = game.clone();
-                    child.place(x, y, self.player(color)).unwrap();
-                    let alt = -self.negamax(&mut child, history, depth - 1, -color);
+                    child.place(x, y, Self::player(color)).unwrap();
+                    let alt = -Self::negamax(&mut child, history, depth - 1, -color);
                     if alt > value {
                         *history = child.history();
                     }
@@ -47,7 +46,7 @@ impl Companion<'_> {
         }
     }
 
-    fn player(&self, color: isize) -> Piece {
+    fn player(color: isize) -> Piece {
         if color == 1 {
             Piece::Black
         } else {
@@ -55,8 +54,9 @@ impl Companion<'_> {
         }
     }
 
-    fn heuristic(&self, game: &mut Game) -> isize {
+    fn heuristic(game: &mut Game) -> isize {
         let (black, _) = game.score();
+        assert!(black <= 64);
         black as isize
     }
 }

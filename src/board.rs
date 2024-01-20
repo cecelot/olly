@@ -1,4 +1,3 @@
-use crate::PlaceError;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt,
@@ -57,17 +56,17 @@ impl Board {
         board
     }
 
-    pub fn adjacent(&self, x: usize, y: usize) -> Result<bool, PlaceError> {
+    pub fn adjacent(&self, x: usize, y: usize) -> bool {
         // Calling code ensures that x and y are within bounds.
         assert!(x < Self::width() && y < Self::width());
         let (x, y): (i8, i8) = crate::convert(x, y);
-        Ok(DIRECTIONS
+        DIRECTIONS
             .iter()
             .filter(|(dx, dy)| x + dx >= 0 && y + dy >= 0)
             .map(|(dx, dy)| (x + dx, y + dy))
             .map(|(x, y)| crate::convert(x, y))
             .filter(|&(x, y)| x < Self::width() && y < Self::width())
-            .any(|(x, y)| self[(x, y)].is_some()))
+            .any(|(x, y)| self[(x, y)].is_some())
     }
 
     pub fn flip(&mut self, x: usize, y: usize, piece: Piece, update: bool) -> Vec<(usize, usize)> {
@@ -80,7 +79,7 @@ impl Board {
                 let opponent = !piece;
                 let mut x = x + dx;
                 let mut y = y + dy;
-                while self.within_bounds(x, y) {
+                while Self::within_bounds(x, y) {
                     let cur = crate::convert(x, y);
                     match self[cur] {
                         Some(p) if p == opponent => {
@@ -104,7 +103,7 @@ impl Board {
     fn on(&self, (x, y): (i8, i8), (dx, dy): (&i8, &i8), piece: Piece) -> bool {
         let mut x = x + dx;
         let mut y = y + dy;
-        while self.within_bounds(x, y) {
+        while Self::within_bounds(x, y) {
             let cur = crate::convert(x, y);
             match self[cur] {
                 Some(p) if p == !piece => {
@@ -118,7 +117,7 @@ impl Board {
         false
     }
 
-    fn within_bounds(&self, x: i8, y: i8) -> bool {
+    fn within_bounds(x: i8, y: i8) -> bool {
         const WIDTH: i8 = Board::width() as i8;
         x >= 0 && y >= 0 && x < WIDTH && y < WIDTH
     }
@@ -153,7 +152,7 @@ impl fmt::Debug for Board {
                 Some(Piece::White) => '●',
                 None => '.',
             };
-            write!(f, "{}", c)?;
+            write!(f, "{c}")?;
             if i % 8 == 7 {
                 writeln!(f)?;
             }
@@ -169,7 +168,7 @@ mod tests {
     #[test]
     fn adjacent() {
         let board = Board::new();
-        assert!(!board.adjacent(0, 0).unwrap());
-        assert!(board.adjacent(2, 3).unwrap());
+        assert!(!board.adjacent(0, 0));
+        assert!(board.adjacent(2, 3));
     }
 }

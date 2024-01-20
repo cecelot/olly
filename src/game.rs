@@ -13,6 +13,7 @@ pub struct Game {
 }
 
 impl Game {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             board: Board::new(),
@@ -21,10 +22,11 @@ impl Game {
         }
     }
 
+    #[must_use]
     pub fn score(&self) -> (usize, usize) {
         let mut black = 0;
         let mut white = 0;
-        for (x, y) in self.points() {
+        for (x, y) in Self::points() {
             match self.board[(x, y)] {
                 Some(Piece::Black) => black += 1,
                 Some(Piece::White) => white += 1,
@@ -35,16 +37,18 @@ impl Game {
     }
 
     pub fn moves(&mut self, piece: Piece) -> Vec<(usize, usize)> {
-        self.points()
+        Self::points()
             .into_iter()
             .filter(|&(x, y)| self.validate(x, y, piece).is_ok())
             .collect()
     }
 
-    fn points(&self) -> impl IntoIterator<Item = (usize, usize)> {
+    fn points() -> impl IntoIterator<Item = (usize, usize)> {
         (0..Board::width()).flat_map(|x| (0..Board::width()).map(move |y| (x, y)))
     }
 
+    /// # Errors
+    /// Returns an error if the move is invalid.
     pub fn place(&mut self, x: usize, y: usize, piece: Piece) -> Result<(), PlaceError> {
         self.validate(x, y, piece)?;
         self.board[(x, y)] = Some(piece);
@@ -54,6 +58,8 @@ impl Game {
         Ok(())
     }
 
+    /// # Errors
+    /// Returns an error if the move is invalid.
     pub fn preview(
         &mut self,
         x: usize,
@@ -70,7 +76,7 @@ impl Game {
         } else {
             match (
                 self.turn == piece,
-                self.board.adjacent(x, y)?,
+                self.board.adjacent(x, y),
                 self.board[(x, y)].is_none(),
             ) {
                 (false, _, _) => Err(PlaceError::Turn(piece)),
@@ -88,10 +94,12 @@ impl Game {
         self.moves(self.turn).is_empty()
     }
 
+    #[must_use]
     pub fn history(&self) -> Vec<(usize, usize)> {
-        self.history.to_owned()
+        self.history.clone()
     }
 
+    #[must_use]
     pub fn turn(&self) -> Piece {
         self.turn
     }
@@ -113,7 +121,7 @@ impl fmt::Debug for Game {
 
 impl fmt::Display for Game {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "{:?}", self)
+        writeln!(f, "{self:?}")
     }
 }
 
@@ -139,7 +147,7 @@ mod tests {
     fn flips_preview() {
         let mut state = Game::new();
         let flips = state.preview(2, 3, Piece::Black);
-        assert_eq!(flips.unwrap(), vec![(3, 3)])
+        assert_eq!(flips.unwrap(), vec![(3, 3)]);
     }
 
     #[test]

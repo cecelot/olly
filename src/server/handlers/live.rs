@@ -72,11 +72,11 @@ pub async fn callback(mut socket: WebSocket, state: Arc<AppState>) {
                 let _ = socket.close().await;
             }
         }
-        Ok(Some(Err(_))) | Ok(None) => {
+        Ok(Some(Err(_)) | None) => {
             let _ = socket.close().await;
         }
         Err(_) => {
-            let _ = send(
+            let () = send(
                 &mut socket,
                 Event::error(strings::IDENTIFY_TIMEOUT, StatusCode::REQUEST_TIMEOUT),
             )

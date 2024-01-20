@@ -11,9 +11,8 @@ pub struct Credentials {
 }
 
 pub async fn logout(State(state): State<Arc<AppState>>, jar: CookieJar) -> impl IntoResponse {
-    let token = match jar.get(strings::SESSION_COOKIE_NAME) {
-        Some(token) => token,
-        None => return (jar, StatusCode::OK),
+    let Some(token) = jar.get(strings::SESSION_COOKIE_NAME) else {
+        return (jar, StatusCode::OK);
     };
     let _ = helpers::delete_session(&state, token.value_trimmed().to_string()).await;
     (jar.remove(strings::SESSION_COOKIE_NAME), StatusCode::OK)
