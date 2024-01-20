@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 mod board;
+mod companion;
 mod game;
 pub mod server;
 

@@ -9,6 +9,7 @@ use std::fmt;
 pub struct Game {
     board: Board,
     turn: Piece,
+    history: Vec<(usize, usize)>,
 }
 
 impl Game {
@@ -16,6 +17,7 @@ impl Game {
         Self {
             board: Board::new(),
             turn: Piece::Black,
+            history: Vec::new(),
         }
     }
 
@@ -47,6 +49,7 @@ impl Game {
         self.validate(x, y, piece)?;
         self.board[(x, y)] = Some(piece);
         self.board.flip(x, y, piece, true);
+        self.history.push((x, y));
         self.turn = !self.turn;
         Ok(())
     }
@@ -79,6 +82,18 @@ impl Game {
                 _ => Ok(()),
             }
         }
+    }
+
+    pub fn over(&mut self) -> bool {
+        self.moves(self.turn).is_empty()
+    }
+
+    pub fn history(&self) -> Vec<(usize, usize)> {
+        self.history.to_owned()
+    }
+
+    pub fn turn(&self) -> Piece {
+        self.turn
     }
 }
 
