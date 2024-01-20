@@ -41,7 +41,6 @@
         ];
 
         DATABASE_URL = "postgres://othello-server:password@0.0.0.0:5432/othello-server";
-        # OPENSSL_DIR = pkgs.openssl.dev;
         PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
 
         shellHook = ''

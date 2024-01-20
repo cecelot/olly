@@ -37,7 +37,7 @@ export default function Square(props: SquareProps) {
           "border-b-2": props.row === 7,
           "cursor-pointer": props.piece === undefined,
           "cursor-not-allowed": props.piece !== undefined,
-        }
+        },
       )}
     >
       <Show when={props.piece !== undefined}>

@@ -18,7 +18,7 @@ export function handleReady(context: Context<ReadyEvent>) {
       op: 1,
       t: token(),
       d: { type: "Create", guest: "unicorn" },
-    })
+    }),
   );
 }
 
@@ -33,7 +33,7 @@ export function handleGameCreate(context: Context<GameCreateEvent>) {
         type: "Join",
         id: ev.d.id,
       },
-    })
+    }),
   );
 }
 
