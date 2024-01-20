@@ -112,7 +112,7 @@ mod tests {
             "username": "gandalf",
             "password": "magic"
         });
-        let resp: Response<String> = client.post(&url, "/register", credentials).await;
+        let resp: Response<test_utils::Map> = client.post(&url, "/register", credentials).await;
         assert_eq!(resp.code, StatusCode::CREATED);
     }
 }
