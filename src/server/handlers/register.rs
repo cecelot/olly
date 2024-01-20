@@ -1,7 +1,8 @@
 use crate::server::{
     entities::{member, prelude::*},
+    handlers::Response,
     state::AppState,
-    strings, HttpResponse,
+    strings,
 };
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
@@ -10,7 +11,7 @@ use argon2::{
 use axum::{
     extract::{rejection::JsonRejection, State},
     http::StatusCode,
-    response::{IntoResponse, Response},
+    response::IntoResponse,
     Json,
 };
 use sea_orm::{ActiveValue, DbErr, EntityTrait, RuntimeErr};
@@ -30,7 +31,7 @@ pub struct Registration {
 pub async fn register(
     State(state): State<Arc<AppState>>,
     body: Result<Json<Registration>, JsonRejection>,
-) -> Result<impl IntoResponse, Response> {
+) -> Result<impl IntoResponse, axum::response::Response> {
     let Json(Registration { username, password }) = body.map_err(|e| {
         StringError(
             e.body_text().replace(
@@ -69,7 +70,7 @@ pub async fn register(
         }
         _ => StringError(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR),
     })?;
-    Ok(HttpResponse::new(
+    Ok(Response::new(
         json!({"id": model.last_insert_id.to_string() }),
         StatusCode::CREATED,
     ))

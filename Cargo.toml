@@ -17,7 +17,7 @@ axum-extra = { version = "0.9.2", features = ["cookie"] }
 base64 = "0.21.7"
 futures = "0.3.30"
 rand = "0.8.5"
-reqwest = "0.11.23"
+reqwest = { version = "0.11.23", features = ["cookies"] }
 sea-orm = { version = "0.12.10", features = ["sqlx-postgres", "runtime-tokio-rustls", "mock", "macros"] }
 serde = { version = "1.0.195", features = ["derive"] }
 serde_json = "1.0.111"

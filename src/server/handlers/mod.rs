@@ -1,13 +1,14 @@
-use axum::{body::Body, http::StatusCode, response::IntoResponse, Json};
+use axum::{http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 
+mod companion;
 mod live;
 mod login;
 mod logout;
 mod me;
 mod register;
 
+pub use companion::companion;
 pub use live::callback;
 pub use login::login;
 pub use logout::logout;
@@ -29,19 +30,6 @@ impl<S: Serialize> Response<S> {
                 code: u16::from(code),
             }),
         )
-    }
-
-    pub fn raw(message: S, code: StatusCode) -> axum::response::Response<Body> {
-        let body = serde_json::to_string(&json!({
-            "message": message,
-            "code": code.as_u16(),
-        }))
-        .unwrap();
-        axum::response::Response::builder()
-            .status(code)
-            .header("Content-Type", "application/json")
-            .body(Body::from(body))
-            .unwrap()
     }
 }
 

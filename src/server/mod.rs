@@ -1,31 +1,22 @@
 use self::state::AppState;
-use argon2::{Argon2, PasswordHash, PasswordVerifier};
+use argon2::PasswordHash;
 use axum::{
     extract::{ws::WebSocketUpgrade, State},
     http::StatusCode,
-    response::Response as AxumResponse,
     routing::{get, post},
     Router,
 };
-use sea_orm::{
-    sea_query::OnConflict, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-};
+use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 
 mod entities;
+mod extractors;
 mod handlers;
 mod helpers;
 mod packet;
 mod state;
 mod strings;
-
-// is this poor design? maybe the tests that require these
-// should be in this module rather than in the top-level
-// tests module.
-pub use entities::{game, member, session};
-pub use handlers::Response as HttpResponse;
-pub use packet::Event as SocketEvent;
 
 pub fn app(database: DatabaseConnection) -> Router {
     let state = Arc::new(AppState::new(database));
@@ -43,12 +34,16 @@ pub fn app(database: DatabaseConnection) -> Router {
             "/logout",
             post(handlers::logout).with_state(Arc::clone(&state)),
         )
-        .route("/@me", get(handlers::me).with_state(state))
+        .route("/@me", get(handlers::me).with_state(Arc::clone(&state)))
+        .route("/companion", post(handlers::companion).with_state(state))
         .fallback(handlers::fallback)
         // TODO: Use a proper CORS policy.
         .layer(CorsLayer::very_permissive())
 }
 
-async fn handler(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>) -> AxumResponse {
+async fn handler(
+    ws: WebSocketUpgrade,
+    State(state): State<Arc<AppState>>,
+) -> axum::response::Response {
     ws.on_upgrade(|socket| handlers::callback(socket, state))
 }
