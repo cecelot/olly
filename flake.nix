@@ -26,6 +26,7 @@
         buildInputs = [
           # Rust
           rust-stable
+          pkgs.sea-orm-cli
           # Node
           pkgs.nodejs-18_x
           pkgs.nodePackages.npm
@@ -35,17 +36,10 @@
         ] ++ (with pkgs.darwin.apple_sdk; lib.optionals stdenv.isDarwin [
             # macOS SDKs
             frameworks.SystemConfiguration
-        ]) ++ lib.optionals stdenv.isLinux [
-          pkgs.openssl
-          pkgs.pkg-config
-        ];
+        ]) ++ lib.optional stdenv.isLinux pkgs.openssl;
 
         DATABASE_URL = "postgres://othello-server:password@0.0.0.0:5432/othello-server";
         PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
-
-        shellHook = ''
-          export PATH="$PATH:$HOME/.local/share/cargo/bin"
-        '';
       };
     });
 }
