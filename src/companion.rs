@@ -54,6 +54,7 @@ impl Companion<'_> {
         }
     }
 
+    #[allow(clippy::cast_possible_wrap)] // 64 <= isize::MAX
     fn heuristic(game: &mut Game) -> isize {
         let (black, _) = game.score();
         assert!(black <= 64);

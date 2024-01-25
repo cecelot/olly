@@ -8,6 +8,7 @@ use tokio::sync::broadcast;
 use uuid::Uuid;
 
 #[derive(Clone)]
+#[allow(clippy::module_name_repetitions)] // This seems fine
 pub struct AppState {
     pub(super) games: Arc<Mutex<HashMap<Uuid, Game>>>,
     pub(super) rooms: Arc<Mutex<HashMap<Uuid, broadcast::Sender<Event>>>>,

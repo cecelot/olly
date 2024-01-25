@@ -13,9 +13,6 @@ members = [
 
 [lints.clippy]
 pedantic = "deny"
-cast_possible_truncation = "warn"
-cast_possible_wrap = "warn"
-module_name_repetitions = "warn"
 
 [dependencies]
 argon2 = "0.5.2"

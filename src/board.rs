@@ -117,6 +117,7 @@ impl Board {
         false
     }
 
+    #[allow(clippy::cast_possible_truncation)] // 8 <= i8::MAX
     fn within_bounds(x: i8, y: i8) -> bool {
         const WIDTH: i8 = Board::width() as i8;
         x >= 0 && y >= 0 && x < WIDTH && y < WIDTH
