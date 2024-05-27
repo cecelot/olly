@@ -1,10 +1,10 @@
 # olly
 
-Olly is combined game client and server for the board game Othello, a variant of [Reversi](https://en.wikipedia.org/wiki/Reversi) with a fixed initial setup of the board.
-
-This repository consists of a Rust web server using [axum](https://docs.rs/axum/latest/axum/), and a [Solid](https://solidjs.com) client (in `client/`).
+Olly is a game client and server for the two-player strategy board game, [Othello](https://en.wikipedia.org/wiki/Reversi).
 
 ## Develop
+
+This repository consists of a Rust web server using [axum](https://docs.rs/axum/latest/axum/), and a [Solid](https://solidjs.com) client (in `client/`).
 
 It is recommended to use the Nix development shell at the root of this repository to automatically install all necessary dependencies (excluding Docker, which must be installed manually).
 
