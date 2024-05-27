@@ -17,8 +17,8 @@ use serde_json::json;
 use uuid::Uuid;
 
 pub struct User {
-    id: Uuid,
-    username: String,
+    pub id: Uuid,
+    pub username: String,
 }
 
 #[async_trait]

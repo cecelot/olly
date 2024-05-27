@@ -1,5 +1,4 @@
 import {
-  GameCreateEvent,
   ReadyEvent,
   Piece,
   GameUpdateEvent,
@@ -12,29 +11,35 @@ import {
 export function handleAckEvent(_: Context<AckEvent>) {}
 
 export function handleReady(context: Context<ReadyEvent>) {
-  const { ws, token } = context;
-  ws.send(
-    JSON.stringify({
-      op: 1,
-      t: token(),
-      d: { type: "Create", guest: "unicorn" },
-    }),
-  );
-}
-
-export function handleGameCreate(context: Context<GameCreateEvent>) {
-  const { ws, ev, setGameId, token } = context;
-  setGameId(ev.d.id);
+  const { token, gameId, ws, setColor } = context;
   ws.send(
     JSON.stringify({
       op: 3,
       t: token(),
       d: {
         type: "Join",
-        id: ev.d.id,
+        id: gameId(),
       },
-    }),
+    })
   );
+  (async () => {
+    const game = await fetch(`http://localhost:3000/game/${gameId()}`, {
+      credentials: "include",
+      mode: "cors",
+    });
+    const me = await fetch(`http://localhost:3000/@me`, {
+      credentials: "include",
+      mode: "cors",
+    });
+    const {
+      message: { host },
+    } = await game.json();
+    const {
+      message: { id },
+    } = await me.json();
+    const color = host === id ? Piece.Black : Piece.White;
+    setColor(color);
+  })();
 }
 
 export function handleGameUpdate(context: Context<GameUpdateEvent>) {

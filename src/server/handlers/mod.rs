@@ -2,6 +2,8 @@ use axum::{http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 
 mod companion;
+mod create;
+mod game;
 mod live;
 mod login;
 mod logout;
@@ -9,6 +11,8 @@ mod me;
 mod register;
 
 pub use companion::companion;
+pub use create::create;
+pub use game::game;
 pub use live::callback;
 pub use login::login;
 pub use logout::logout;

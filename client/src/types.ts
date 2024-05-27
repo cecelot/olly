@@ -23,13 +23,6 @@ export interface ReadyEvent {
   };
 }
 
-export interface GameCreateEvent {
-  op: 3;
-  d: {
-    id: string;
-  };
-}
-
 export interface GameUpdateEvent {
   op: 4;
   d: {
@@ -58,7 +51,6 @@ export interface ErrorEvent {
 export type Event =
   | AckEvent
   | ReadyEvent
-  | GameCreateEvent
   | GameUpdateEvent
   | ErrorEvent
   | PreviewEvent;
@@ -68,7 +60,8 @@ export interface Context<T> {
   ev: T;
   board: Board;
   token: Accessor<string | undefined>;
-  setGameId: (gameId: string) => void;
+  gameId: Accessor<string | null>;
   setTurn: (turn: Piece) => void;
+  setColor: (color: Piece) => void;
   setPreview: (preview: Array<[number, number]> | undefined) => void;
 }

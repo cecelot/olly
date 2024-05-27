@@ -1,6 +1,6 @@
 use crate::{
     server::{
-        entities::{game, member, prelude::Game as GameModel},
+        entities::{game, prelude::Game as GameModel},
         handlers::StringError,
         helpers,
         state::AppState,
@@ -10,11 +10,11 @@ use crate::{
 };
 use axum::{extract::ws::Message, http::StatusCode};
 use futures::Future;
-use sea_orm::{ActiveModelTrait, ActiveValue, EntityTrait};
+use sea_orm::EntityTrait;
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::str::FromStr;
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::mpsc;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -45,8 +45,8 @@ enum Data {
 #[derive(Debug, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
 #[repr(u8)]
 enum Opcode {
-    Create = 1 << 0,
-    Place,
+    // Create = 1 << 0
+    Place = 1 << 1,
     Join,
     Leave,
     Reset,
@@ -76,7 +76,6 @@ impl Packet {
     pub async fn process(&self, state: &AppState, sender: Option<mpsc::Sender<Event>>) -> Event {
         match self.op {
             Opcode::Identify => self.identify(state).await,
-            Opcode::Create => self.authenticated(state, |p| p.create(state)).await,
             Opcode::Place => self.authenticated(state, |p| p.place(state)).await,
             Opcode::Preview => self.authenticated(state, |p| p.preview(state)).await,
             Opcode::Join => {
@@ -93,36 +92,6 @@ impl Packet {
         // Verify that the token is valid.
         self.current_user(state).await?;
         Ok(Event::new(EventKind::Ready, EventData::Ready))
-    }
-
-    async fn create(&self, state: &AppState) -> Result<Event, Event> {
-        let host = self.current_user(state).await?;
-        let guest = match &self.d {
-            Data::Create { guest } => self.user(state, guest).await?,
-            _ => panic!("expected serde to reject invalid packet data"),
-        };
-        let id = Uuid::now_v7();
-        let model = game::ActiveModel {
-            id: ActiveValue::set(id),
-            host: ActiveValue::set(host),
-            guest: ActiveValue::set(guest.id.to_string()),
-        };
-        if let Err(e) = model.insert(state.database.as_ref()).await {
-            return Err(Event::error(
-                &e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            ));
-        };
-        let game = Game::new();
-        let (tx, _) = broadcast::channel(16);
-        let mut games = state.games.lock().expect("mutex was poisoned");
-        let mut rooms = state.rooms.lock().expect("mutex was poisoned");
-        games.insert(id, game);
-        rooms.insert(id, tx);
-        Ok(Event::new(
-            EventKind::GameCreate,
-            EventData::GameCreate { id: id.to_string() },
-        ))
     }
 
     async fn join(&self, state: &AppState, sender: mpsc::Sender<Event>) -> Result<Event, Event> {
@@ -239,12 +208,6 @@ impl Packet {
             .map_err(|StringError(message, code)| Event::error(&message, code))
     }
 
-    async fn user(&self, state: &AppState, username: &str) -> Result<member::Model, Event> {
-        helpers::get_user(state, username, true)
-            .await
-            .map_err(|StringError(message, code)| Event::error(&message, code))
-    }
-
     async fn game(&self, state: &AppState, id: &str) -> Result<game::Model, Event> {
         let id = Uuid::from_str(id)
             .map_err(|_| Event::error(strings::INVALID_GAME_ID_FORMAT, StatusCode::BAD_REQUEST))?;
@@ -288,8 +251,8 @@ pub struct Event {
 pub enum EventKind {
     Ack = 1 << 0,
     Ready,
-    GameCreate,
-    GameUpdate,
+    // GameCreate
+    GameUpdate = 1 << 2,
     GameUpdatePreview,
     Error,
 }

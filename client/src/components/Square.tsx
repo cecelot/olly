@@ -10,6 +10,7 @@ interface SquareProps {
   piece?: Piece;
   preview?: boolean;
   turn: Piece;
+  color: Piece;
   row: number;
   col: number;
 }
@@ -35,9 +36,11 @@ export default function Square(props: SquareProps) {
         {
           "border-l-2": props.col === 0,
           "border-b-2": props.row === 7,
-          "cursor-pointer": props.piece === undefined,
-          "cursor-not-allowed": props.piece !== undefined,
-        },
+          "cursor-pointer":
+            props.piece === undefined && props.color === props.turn,
+          "cursor-not-allowed":
+            props.piece !== undefined || props.color !== props.turn,
+        }
       )}
     >
       <Show when={props.piece !== undefined}>

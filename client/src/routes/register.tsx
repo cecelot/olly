@@ -1,6 +1,6 @@
 import { createSignal } from "solid-js";
 
-export default function Login() {
+export default function Register() {
   const [username, setUsername] = createSignal<string>("");
   const [password, setPassword] = createSignal<string>("");
 

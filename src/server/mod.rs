@@ -34,6 +34,14 @@ pub fn app(database: DatabaseConnection) -> Router {
             "/logout",
             post(handlers::logout).with_state(Arc::clone(&state)),
         )
+        .route(
+            "/create",
+            post(handlers::create).with_state(Arc::clone(&state)),
+        )
+        .route(
+            "/game/:id",
+            get(handlers::game).with_state(Arc::clone(&state)),
+        )
         .route("/@me", get(handlers::me).with_state(Arc::clone(&state)))
         .route("/companion", post(handlers::companion).with_state(state))
         .fallback(handlers::fallback)

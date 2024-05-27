@@ -1,5 +1,5 @@
 use crate::server::{
-    entities::{member, prelude::*, session},
+    entities::{game, member, prelude::*, session},
     handlers::StringError,
     strings, AppState, PasswordHash, StatusCode,
 };
@@ -30,6 +30,23 @@ pub async fn get_user(
         Ok(Some(user)) => Ok(user),
         Ok(None) => Err(StringError(
             strings::INVALID_USERNAME.to_string(),
+            StatusCode::NOT_FOUND,
+        )),
+        Err(e) => Err(StringError(
+            e.to_string(),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        )),
+    }
+}
+
+pub async fn get_game(state: &AppState, id: &str) -> Result<game::Model, StringError> {
+    match Game::find_by_id(Uuid::parse_str(id).unwrap())
+        .one(state.database.as_ref())
+        .await
+    {
+        Ok(Some(game)) => Ok(game),
+        Ok(None) => Err(StringError(
+            strings::INVALID_GAME_ID.to_string(),
             StatusCode::NOT_FOUND,
         )),
         Err(e) => Err(StringError(
