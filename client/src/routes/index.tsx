@@ -3,7 +3,7 @@ import { A } from "@solidjs/router";
 export default function Home() {
   const onClick = () => {
     const main = async () => {
-      const res = await fetch("http://localhost:3000/create", {
+      const res = await fetch("http://localhost:3000/game", {
         credentials: "include",
         method: "POST",
         headers: {
@@ -27,23 +27,23 @@ export default function Home() {
     <>
       <main class="text-center mx-auto pt-40">
         <section class="space-y-5">
-          <h1 class="font-bold text-gray-100 text-6xl">Othello</h1>
-          <h2 class="font-normal text-gray-300 text-xl">
+          <h1 class="font-bold text-6xl text-text">Othello</h1>
+          <h2 class="font-normal text-subtext0 text-xl">
             The two-player strategy board game based on Reversi
           </h2>
           <div class="flex-row space-x-5 pt-5">
             <button
               onClick={onClick}
-              class="bg-green-400 hover:bg-green-500 transition-all text-slate-950 rounded-lg p-3"
+              class="text-text border-2 border-green hover:bg-mantle transition-all rounded-lg p-3"
             >
               New Game
             </button>
-            <A
-              href="/join"
-              class="bg-green-200 hover:bg-green-300 transition-all text-slate-950 rounded-lg p-3"
+            <button
+              onClick={() => (window.location.href = "/join")}
+              class="text-text border-2 border-teal hover:bg-mantle transition-all rounded-lg p-3"
             >
               Join Game
-            </A>
+            </button>
           </div>
         </section>
       </main>

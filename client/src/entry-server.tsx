@@ -10,7 +10,7 @@ export default createHandler(() => (
           <link rel="icon" href="/favicon.ico" />
           {assets}
         </head>
-        <body>
+        <body class="latte">
           <div id="app">{children}</div>
           {scripts}
         </body>

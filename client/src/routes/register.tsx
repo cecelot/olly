@@ -50,7 +50,7 @@ export default function Register() {
           }}
           class="bg-green-400 hover:bg-green-500 transition-all text-slate-950 rounded-lg p-3"
         >
-          Create account
+          Register
         </button>
       </form>
     </main>

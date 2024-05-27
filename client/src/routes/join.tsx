@@ -12,7 +12,7 @@ export default function Join() {
       <form class="flex flex-col mx-auto space-y-3 max-w-80">
         <input
           placeholder="Game ID (shown on host's game screen)"
-          class="bg-slate-800 text-gray-100 rounded-lg p-3"
+          class="bg-crust text-subtext0 rounded-lg p-3"
           onChange={(e) => setGameId(e.currentTarget.value)}
         ></input>
         <button
@@ -20,7 +20,7 @@ export default function Join() {
             e.preventDefault();
             onClick();
           }}
-          class="bg-green-400 hover:bg-green-500 transition-all text-slate-950 rounded-lg p-3"
+          class="text-text border-2 border-green hover:bg-mantle transition-all rounded-lg p-3"
         >
           Join
         </button>

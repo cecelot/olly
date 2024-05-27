@@ -35,7 +35,7 @@ pub fn app(database: DatabaseConnection) -> Router {
             post(handlers::logout).with_state(Arc::clone(&state)),
         )
         .route(
-            "/create",
+            "/game",
             post(handlers::create).with_state(Arc::clone(&state)),
         )
         .route(

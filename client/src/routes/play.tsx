@@ -79,7 +79,7 @@ function LiveBoard(props: LiveBoardProps) {
   });
 
   return (
-    <div class="flex flex-row flex-wrap-reverse bg-slate-900">
+    <div class="flex flex-row flex-wrap-reverse">
       <div class="flex flex-col max-h-screen items-center p-5">
         <For each={board}>
           {(arr, row) => (
@@ -136,11 +136,11 @@ function LiveBoard(props: LiveBoardProps) {
         </For>
       </div>
       <div>
-        <p class="text-white pt-5">Turn: {turn() === 0 ? "Black" : "White"}</p>
+        <p class="text-text pt-5">Turn: {turn() === 0 ? "Black" : "White"}</p>
         <Show when={token() !== undefined}>
-          <p class="text-white pt-5">Token: {token()}</p>
+          <p class="text-text pt-5">Token: {token()}</p>
         </Show>
-        <p class="text-white pt-5">Game ID: {props.gameId()}</p>
+        <p class="text-text pt-5">Game ID: {props.gameId()}</p>
       </div>
     </div>
   );
@@ -164,7 +164,7 @@ export default function Play() {
         if (user() === undefined || gameId() === null) {
           return (
             <main class="text-center mx-auto p-4">
-              <h3 class="text-lg text-gray-300">Loading...</h3>
+              <h3 class="text-lg text-subtext0">Loading...</h3>
             </main>
           );
         } else if (user() === null) {
@@ -172,12 +172,9 @@ export default function Play() {
         } else {
           return (
             <main class="text-center mx-auto p-4">
-              <h3 class="text-lg text-gray-300">Invalid game ID provided</h3>
+              <h3 class="text-lg text-subtext0">Invalid game ID provided</h3>
               <p class="my-4">
-                <A
-                  href="/"
-                  class="text-green-400 hover:text-green-500 transition-all"
-                >
+                <A href="/" class="text-mauve hover:text-pink transition-all">
                   {"["}Home{"]"}
                 </A>
               </p>

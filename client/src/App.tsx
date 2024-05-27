@@ -9,7 +9,7 @@ export default function App() {
   return (
     <Router
       root={(props) => (
-        <div class="bg-slate-900 max-h-screen min-h-screen">
+        <div class="bg-base max-h-screen min-h-screen">
           <Navbar />
           <Suspense>{props.children}</Suspense>
         </div>

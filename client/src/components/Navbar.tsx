@@ -22,24 +22,15 @@ export default function Navbar() {
   });
 
   return (
-    <nav class="flex flex-row justify-center p-5 bg-gray-900">
+    <nav class="flex flex-row justify-center p-5 bg-mantle text-mauve">
       <div class="space-x-3">
-        <A
-          href="/about"
-          class="text-green-400 hover:text-green-500 transition-all"
-        >
+        <A href="/about" class="hover:text-pink transition-all">
           {"["}About{"]"}
         </A>
-        <A
-          href="/stats"
-          class="text-green-400 hover:text-green-500 transition-all"
-        >
+        <A href="/stats" class="text-mauve hover:text-pink transition-all">
           {"["}Stats{"]"}
         </A>
-        <A
-          href="/friends"
-          class="text-green-400 hover:text-green-500 transition-all"
-        >
+        <A href="/friends" class="text-mauve hover:text-pink transition-all">
           {"["}Friends{"]"}
         </A>
         <Show
@@ -48,13 +39,13 @@ export default function Navbar() {
             <>
               <A
                 href="/login"
-                class="text-green-400 hover:text-green-500 transition-all"
+                class="text-mauve hover:text-pink transition-all"
               >
                 {"["}Login{"]"}
               </A>
               <A
                 href="/register"
-                class="text-green-400 hover:text-green-500 transition-all"
+                class="text-mauve hover:text-pink transition-all"
               >
                 {"["}Register{"]"}
               </A>
@@ -63,7 +54,7 @@ export default function Navbar() {
         >
           <button
             onClick={() => logout()}
-            class="text-green-400 hover:text-green-500 transition-all"
+            class="hover:text-pink transition-all"
           >
             {"["}Logout{"]"}
           </button>
