@@ -45,12 +45,20 @@ export default function Navbar() {
         <Show
           when={user()}
           fallback={
-            <A
-              href="/login"
-              class="text-green-400 hover:text-green-500 transition-all"
-            >
-              {"["}Login{"]"}
-            </A>
+            <>
+              <A
+                href="/login"
+                class="text-green-400 hover:text-green-500 transition-all"
+              >
+                {"["}Login{"]"}
+              </A>
+              <A
+                href="/register"
+                class="text-green-400 hover:text-green-500 transition-all"
+              >
+                {"["}Register{"]"}
+              </A>
+            </>
           }
         >
           <button
