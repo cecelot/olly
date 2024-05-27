@@ -24,6 +24,9 @@ export default function Navbar() {
   return (
     <nav class="flex flex-row justify-center p-5 bg-mantle text-mauve">
       <div class="space-x-3">
+        <A href="/" class="hover:text-pink transition-all">
+          {"["}Home{"]"}
+        </A>
         <A href="/about" class="hover:text-pink transition-all">
           {"["}About{"]"}
         </A>
