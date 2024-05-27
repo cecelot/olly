@@ -23,11 +23,9 @@ mod tests {
 
     #[tokio::test]
     async fn new() {
-        let database = sea_orm::Database::connect(
-            "postgres://othello-server:password@0.0.0.0:5432/othello-server",
-        )
-        .await
-        .unwrap();
+        let database = sea_orm::Database::connect("postgres://olly:password@0.0.0.0:5432/olly")
+            .await
+            .unwrap();
         let url = test_utils::init(crate::server::app(database)).await;
         let client = test_utils::Client::new();
         let game = crate::Game::new();

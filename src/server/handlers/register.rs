@@ -83,11 +83,9 @@ mod tests {
 
     #[tokio::test]
     async fn taken() {
-        let database = sea_orm::Database::connect(
-            "postgres://othello-server:password@localhost:5432/othello-server",
-        )
-        .await
-        .unwrap();
+        let database = sea_orm::Database::connect("postgres://olly:password@localhost:5432/olly")
+            .await
+            .unwrap();
         let url = test_utils::init(crate::server::app(database)).await;
         let client = test_utils::Client::new();
         let credentials = serde_json::json!({
@@ -101,11 +99,9 @@ mod tests {
 
     #[tokio::test]
     async fn success() {
-        let database = sea_orm::Database::connect(
-            "postgres://othello-server:password@localhost:5432/othello-server",
-        )
-        .await
-        .unwrap();
+        let database = sea_orm::Database::connect("postgres://olly:password@localhost:5432/olly")
+            .await
+            .unwrap();
         let url = test_utils::init(crate::server::app(database)).await;
         let client = test_utils::Client::new();
         let credentials = serde_json::json!({

@@ -38,7 +38,7 @@
             frameworks.SystemConfiguration
         ]) ++ lib.optional stdenv.isLinux pkgs.openssl;
 
-        DATABASE_URL = "postgres://othello-server:password@0.0.0.0:5432/othello-server";
+        DATABASE_URL = "postgres://olly:password@0.0.0.0:5432/olly";
         PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
       };
     });

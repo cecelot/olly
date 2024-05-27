@@ -5,7 +5,7 @@ services:
     image: postgres
     restart: always
     environment:
-      POSTGRES_USER: othello-server
+      POSTGRES_USER: olly
       POSTGRES_PASSWORD: password
     ports:
       - 5432:5432

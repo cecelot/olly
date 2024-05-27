@@ -1,6 +1,6 @@
-# othello
+# olly
 
-An implementation of the two-player strategy board game, Othello. This is a variant of [Reversi](https://en.wikipedia.org/wiki/Reversi) with a fixed initial setup of the board.
+Olly is combined game client and server for the board game Othello, a variant of [Reversi](https://en.wikipedia.org/wiki/Reversi) with a fixed initial setup of the board.
 
 This repository consists of a Rust web server using [axum](https://docs.rs/axum/latest/axum/), and a [Solid](https://solidjs.com) client (in `client/`).
 
