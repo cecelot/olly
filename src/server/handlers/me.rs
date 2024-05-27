@@ -107,6 +107,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "race - for experimental purposes, not a formal test yet"]
     async fn friends() {
         let database = sea_orm::Database::connect("postgres://olly:password@localhost:5432/olly")
             .await
