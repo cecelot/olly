@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 mod companion;
 mod create;
+pub mod friend_request;
 mod game;
 mod live;
 mod login;
@@ -16,7 +17,7 @@ pub use game::game;
 pub use live::callback;
 pub use login::login;
 pub use logout::logout;
-pub use me::me;
+pub use me::{friends, incoming, me, outgoing};
 pub use register::register;
 
 #[derive(Debug, Serialize, Deserialize)]

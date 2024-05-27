@@ -15,6 +15,7 @@ pub async fn companion(
 
 #[cfg(test)]
 mod tests {
+
     #[derive(serde::Deserialize)]
     struct Choice {
         message: (usize, usize),
@@ -30,9 +31,12 @@ mod tests {
         let client = test_utils::Client::new();
         let game = crate::Game::new();
         let credentials = serde_json::json!({
-            "username": "test",
-            "password": "test"
+            "username": "test2",
+            "password": "test2"
         });
+        client
+            .post::<_, test_utils::Map>(&url, "/register", credentials.clone())
+            .await;
         client
             .post::<_, test_utils::Map>(&url, "/login", credentials)
             .await;

@@ -23,6 +23,17 @@ impl Client {
         }
     }
 
+    pub async fn get<D: DeserializeOwned>(&self, url: &str, endpoint: &str) -> D {
+        let res = self
+            .inner
+            .get(&format!("{url}{endpoint}"))
+            .send()
+            .await
+            .unwrap();
+        let text = res.text().await.unwrap();
+        serde_json::from_str(&text).unwrap()
+    }
+
     pub async fn post<S: Serialize, D: DeserializeOwned>(
         &self,
         url: &str,

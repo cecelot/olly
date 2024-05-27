@@ -42,7 +42,27 @@ pub fn app(database: DatabaseConnection) -> Router {
             "/game/:id",
             get(handlers::game).with_state(Arc::clone(&state)),
         )
+        .route(
+            "/users/:id/friend",
+            post(handlers::friend_request::send).with_state(Arc::clone(&state)),
+        )
         .route("/@me", get(handlers::me).with_state(Arc::clone(&state)))
+        .route(
+            "/@me/friends",
+            get(handlers::friends).with_state(Arc::clone(&state)),
+        )
+        .route(
+            "/@me/friends/incoming",
+            get(handlers::incoming).with_state(Arc::clone(&state)),
+        )
+        .route(
+            "/@me/friends/outgoing",
+            get(handlers::outgoing).with_state(Arc::clone(&state)),
+        )
+        .route(
+            "/@me/friends/:id/:outcome",
+            post(handlers::friend_request::reply).with_state(Arc::clone(&state)),
+        )
         .route("/companion", post(handlers::companion).with_state(state))
         .fallback(handlers::fallback)
         // TODO: Use a proper CORS policy.
