@@ -48,6 +48,10 @@ pub fn app(database: DatabaseConnection) -> Router {
         )
         .route("/@me", get(handlers::me).with_state(Arc::clone(&state)))
         .route(
+            "/@me/games",
+            get(handlers::games).with_state(Arc::clone(&state)),
+        )
+        .route(
             "/@me/friends",
             get(handlers::friends).with_state(Arc::clone(&state)),
         )

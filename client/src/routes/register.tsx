@@ -34,12 +34,12 @@ export default function Register() {
       <form class="flex flex-col mx-auto space-y-3 max-w-60">
         <input
           placeholder="Username"
-          class="bg-slate-800 text-gray-100 rounded-lg p-3"
+          class="bg-crust text-subtext0 rounded-lg p-3"
           onChange={(e) => setUsername(e.currentTarget.value)}
         ></input>
         <input
           placeholder="Password"
-          class="bg-slate-800 text-gray-100 rounded-lg p-3"
+          class="bg-crust text-subtext0 rounded-lg p-3"
           type="password"
           onChange={(e) => setPassword(e.currentTarget.value)}
         ></input>
@@ -48,7 +48,7 @@ export default function Register() {
             e.preventDefault();
             onClick();
           }}
-          class="bg-green-400 hover:bg-green-500 transition-all text-slate-950 rounded-lg p-3"
+          class="text-text border-2 border-green hover:bg-mantle transition-all rounded-lg p-3"
         >
           Register
         </button>

@@ -4,10 +4,12 @@ use crate::server::{
     entities::{
         friend::Column as FriendColumn,
         friend_request::Column as FriendRequestColumn,
-        prelude::{Friend, FriendRequest},
+        game::Column as GameColumn,
+        prelude::{Friend, FriendRequest, Game},
     },
     extractors::User,
     handlers::StringError,
+    helpers,
     state::AppState,
 };
 use axum::{
@@ -20,6 +22,35 @@ use serde_json::json;
 
 pub async fn me(user: User) -> Result<impl IntoResponse, Response> {
     Ok(user)
+}
+
+pub async fn games(
+    State(state): State<Arc<AppState>>,
+    user: User,
+) -> Result<impl IntoResponse, Response> {
+    let games = Game::find()
+        .filter(
+            GameColumn::Host
+                .eq(user.id.to_string())
+                .or(GameColumn::Guest.eq(user.id.to_string())),
+        )
+        .all(state.database.as_ref())
+        .await
+        .map_err(|e| StringError(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
+    let mut resp = vec![];
+    for g in &games {
+        let id = if user.id.to_string() == g.host {
+            &g.guest
+        } else {
+            &g.host
+        };
+        let opponent = helpers::get_user(&state, id, false).await?;
+        resp.push(json!({
+            "id": g.id,
+            "opponent": opponent.username
+        }));
+    }
+    Ok(super::Response::new(resp, StatusCode::OK))
 }
 
 pub async fn incoming(
