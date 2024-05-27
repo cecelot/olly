@@ -2,44 +2,32 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     rust-overlay.url = "github:oxalica/rust-overlay";
-    flake-utils.url = "github:numtide/flake-utils";
+    flake-parts.url = "github:hercules-ci/flake-parts";
   };
 
-  outputs = {
-    nixpkgs,
+  outputs = inputs @ {
+    self,
+    flake-parts,
     rust-overlay,
-    flake-utils,
     ...
   }:
-    flake-utils.lib.eachDefaultSystem
-    (system: let
-      overlays = [(import rust-overlay)];
-      pkgs = import nixpkgs {
-        inherit overlays;
-        inherit system;
+    flake-parts.lib.mkFlake {inherit inputs;} {
+      systems = [
+        "x86_64-darwin"
+        "aarch64-darwin"
+        "x86_64-linux"
+        "aarch64-linux"
+      ];
+      perSystem = {
+        system,
+        pkgs,
+        ...
+      }: {
+        _module.args.pkgs = import self.inputs.nixpkgs {
+          inherit system;
+          overlays = [(import rust-overlay)];
+        };
+        devShells.default = pkgs.callPackage ./nix/devShell.nix {};
       };
-      rust-stable = pkgs.rust-bin.stable.latest.default.override {
-        extensions = ["rust-src"];
-      };
-    in {
-      devShells.default = with pkgs; pkgs.mkShell {
-        buildInputs = [
-          # Rust
-          rust-stable
-          pkgs.sea-orm-cli
-          # Node
-          pkgs.nodejs-18_x
-          pkgs.nodePackages.npm
-          # Other
-          pkgs.postgresql
-          pkgs.docker
-        ] ++ (with pkgs.darwin.apple_sdk; lib.optionals stdenv.isDarwin [
-            # macOS SDKs
-            frameworks.SystemConfiguration
-        ]) ++ lib.optional stdenv.isLinux pkgs.openssl;
-
-        DATABASE_URL = "postgres://olly:password@0.0.0.0:5432/olly";
-        PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
-      };
-    });
+    };
 }
