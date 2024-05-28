@@ -1,8 +1,20 @@
-import { createSignal } from "solid-js";
+import { createEffect, createSignal } from "solid-js";
+import { currentUser } from "~/lib";
+import { Member } from "~/types";
 
 export default function Login() {
   const [username, setUsername] = createSignal<string>("");
   const [password, setPassword] = createSignal<string>("");
+  const [user, setUser] = createSignal<Member | null>(null);
+
+  createEffect(() => {
+    (async () => {
+      setUser(await currentUser());
+      if (user()) {
+        window.location.href = "/";
+      }
+    })();
+  });
 
   const onClick = () => {
     const main = async () => {
