@@ -5,6 +5,11 @@ export enum Piece {
   White,
 }
 
+export interface Game {
+  id: string;
+  opponent: string;
+}
+
 export interface Member {
   id: string;
   username: string;

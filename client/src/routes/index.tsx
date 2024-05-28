@@ -1,27 +1,7 @@
 import { A } from "@solidjs/router";
-import { For, Show, createEffect, createSignal } from "solid-js";
-
-interface Game {
-  id: string;
-  opponent: string;
-}
+import GameList from "~/components/GameList";
 
 export default function Home() {
-  const [games, setGames] = createSignal<Game[] | null>(null);
-
-  createEffect(() => {
-    const main = async () => {
-      const res = await fetch("http://localhost:3000/@me/games", {
-        credentials: "include",
-      });
-      if (res.status === 200) {
-        const { message: games } = await res.json();
-        setGames(games);
-      }
-    };
-    main();
-  });
-
   return (
     <main class="text-center mx-auto pt-5">
       <section class="space-y-5 py-10">
@@ -44,33 +24,7 @@ export default function Home() {
           </A>
         </div>
       </section>
-      <h3 class="font-bold text-text pb-2">Active Games</h3>
-      <section class="max-h-96 overflow-y-scroll">
-        <Show
-          when={(games()?.length || 0) > 0}
-          fallback={
-            <p class="text-subtext0">
-              No active games! Create one using the button above.
-            </p>
-          }
-        >
-          <ul class="space-y-3">
-            <For each={games()}>
-              {(game) => {
-                return (
-                  <li class="flex-col">
-                    <A
-                      href={`/play?gameId=${game.id}`}
-                      class="text-blue hover:underline-offset-4 hover:underline hover:text-sapphire"
-                    >{`Game against ${game.opponent}`}</A>
-                    <p class="text-sm text-subtext1">{game.id}</p>
-                  </li>
-                );
-              }}
-            </For>
-          </ul>
-        </Show>
-      </section>
+      <GameList />
     </main>
   );
 }
