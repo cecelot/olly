@@ -54,23 +54,21 @@ export default function Home() {
             </p>
           }
         >
-          <For each={games()}>
-            {(game) => {
-              return (
-                <ul class="flex-col space-x-5 pb-3">
-                  <li>
+          <ul class="space-y-3">
+            <For each={games()}>
+              {(game) => {
+                return (
+                  <li class="flex-col">
                     <A
                       href={`/play?gameId=${game.id}`}
                       class="text-blue hover:underline-offset-4 hover:underline hover:text-sapphire"
                     >{`Game against ${game.opponent}`}</A>
-                  </li>
-                  <li>
                     <p class="text-sm text-subtext1">{game.id}</p>
                   </li>
-                </ul>
-              );
-            }}
-          </For>
+                );
+              }}
+            </For>
+          </ul>
         </Show>
       </section>
     </main>
