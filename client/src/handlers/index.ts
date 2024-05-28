@@ -1,3 +1,4 @@
+import { simpleGet } from "~/lib";
 import {
   ReadyEvent,
   Piece,
@@ -23,22 +24,9 @@ export function handleReady(context: Context<ReadyEvent>) {
     })
   );
   (async () => {
-    const game = await fetch(`http://localhost:3000/game/${gameId()}`, {
-      credentials: "include",
-      mode: "cors",
-    });
-    const me = await fetch(`http://localhost:3000/@me`, {
-      credentials: "include",
-      mode: "cors",
-    });
-    const {
-      message: { host },
-    } = await game.json();
-    const {
-      message: { id },
-    } = await me.json();
-    const color = host === id ? Piece.Black : Piece.White;
-    setColor(color);
+    const { host } = await simpleGet(`/game/${gameId()}`);
+    const { id } = await simpleGet("/@me");
+    setColor(host === id ? Piece.Black : Piece.White);
   })();
 }
 

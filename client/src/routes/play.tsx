@@ -79,8 +79,8 @@ function LiveBoard(props: LiveBoardProps) {
   });
 
   return (
-    <div class="flex flex-row flex-wrap-reverse">
-      <div class="flex flex-col max-h-screen items-center p-5">
+    <main class="flex flex-row flex-wrap-reverse">
+      <section class="flex flex-col max-h-screen items-center p-5">
         <For each={board}>
           {(arr, row) => (
             <div class="flex flex-row">
@@ -134,15 +134,12 @@ function LiveBoard(props: LiveBoardProps) {
             </div>
           )}
         </For>
-      </div>
-      <div>
+      </section>
+      <section>
         <p class="text-text pt-5">Turn: {turn() === 0 ? "Black" : "White"}</p>
-        <Show when={token() !== undefined}>
-          <p class="text-text pt-5">Token: {token()}</p>
-        </Show>
         <p class="text-text pt-5">Game ID: {props.gameId()}</p>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
 
@@ -161,14 +158,16 @@ export default function Play() {
     <Show
       when={user() && gameId()?.match(UUID_REGEX)}
       fallback={(() => {
-        if (user() === undefined || gameId() === null) {
+        if (user() === undefined) {
           return (
             <main class="text-center mx-auto p-4">
               <h3 class="text-lg text-subtext0">Loading...</h3>
             </main>
           );
         } else if (user() === null) {
-          window.location.href = "/login";
+          window.location.href = `/login?to=${encodeURIComponent("/play")}`;
+        } else if (gameId() === null) {
+          window.location.href = "/join";
         } else {
           return (
             <main class="text-center mx-auto p-4">

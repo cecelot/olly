@@ -1,28 +1,12 @@
 import { createSignal } from "solid-js";
+import { createGame } from "~/lib/createGame";
 
 export default function New() {
   const [opponent, setOpponent] = createSignal<string>("");
 
-  const onClick = () => {
-    const main = async () => {
-      const res = await fetch("http://localhost:3000/game", {
-        credentials: "include",
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          guest: opponent(),
-        }),
-      });
-      if (res.status === 201) {
-        const { message } = await res.json();
-        window.location.href = `/play?gameId=${message.id}`;
-      } else {
-        alert(`An error occurred: ${JSON.stringify(await res.json())}`);
-      }
-    };
-    main();
+  const onClick = (e: MouseEvent & { currentTarget: HTMLButtonElement }) => {
+    e.preventDefault();
+    createGame(opponent());
   };
 
   return (
@@ -34,10 +18,7 @@ export default function New() {
           onChange={(e) => setOpponent(e.currentTarget.value)}
         ></input>
         <button
-          onClick={(e) => {
-            e.preventDefault();
-            onClick();
-          }}
+          onClick={onClick}
           class="text-text border-2 border-green hover:bg-mantle transition-all rounded-lg p-3"
         >
           Play

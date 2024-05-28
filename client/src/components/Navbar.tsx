@@ -1,23 +1,42 @@
-import { Show, createEffect, createSignal } from "solid-js";
+import { createEffect, createSignal } from "solid-js";
 import { A } from "@solidjs/router";
+import { call, currentUser } from "~/lib";
 import { Member } from "~/types";
-import { currentUser } from "~/lib/currentUser";
+import { Dynamic } from "solid-js/web";
+
+const logout = async () => {
+  await call("/logout", "POST");
+  window.location.href = "/";
+};
+
+const options = {
+  logout: () => (
+    <button onClick={() => logout()} class="hover:text-pink transition-all">
+      {"["}Logout{"]"}
+    </button>
+  ),
+  loginRegister: () => (
+    <>
+      <A href="/login" class="text-mauve hover:text-pink transition-all">
+        {"["}Login{"]"}
+      </A>
+      <A href="/register" class="text-mauve hover:text-pink transition-all">
+        {"["}Register{"]"}
+      </A>
+    </>
+  ),
+  loading: () => <></>,
+} as const;
 
 export default function Navbar() {
-  const logout = async () => {
-    await fetch("http://localhost:3000/logout", {
-      credentials: "include",
-      mode: "cors",
-      method: "POST",
-    });
-    window.location.href = "/";
-  };
-
   const [user, setUser] = createSignal<Member | null>(null);
+  const [selected, setSelected] = createSignal<keyof typeof options>("loading");
 
   createEffect(() => {
     (async () => {
       setUser(await currentUser());
+      if (user() === null) setSelected("loginRegister");
+      else setSelected("logout");
     })();
   });
 
@@ -36,32 +55,7 @@ export default function Navbar() {
         <A href="/account" class="text-mauve hover:text-pink transition-all">
           {"["}Account{"]"}
         </A>
-        <Show
-          when={user()}
-          fallback={
-            <>
-              <A
-                href="/login"
-                class="text-mauve hover:text-pink transition-all"
-              >
-                {"["}Login{"]"}
-              </A>
-              <A
-                href="/register"
-                class="text-mauve hover:text-pink transition-all"
-              >
-                {"["}Register{"]"}
-              </A>
-            </>
-          }
-        >
-          <button
-            onClick={() => logout()}
-            class="hover:text-pink transition-all"
-          >
-            {"["}Logout{"]"}
-          </button>
-        </Show>
+        <Dynamic component={options[selected()]} />
       </div>
     </nav>
   );

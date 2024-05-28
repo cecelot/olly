@@ -4,9 +4,9 @@ export default function NotFound() {
   return (
     <main class="text-center mx-auto p-4">
       <h1 class="text-6xl text-text uppercase my-4">{":("}</h1>
-      <h3 class="text-lg text-subtext0">
+      <h2 class="text-lg text-subtext0">
         The page you are looking for does not exist
-      </h3>
+      </h2>
       <p class="my-4">
         <A href="/" class="text-mauve hover:text-pink transition-all">
           {"["}Home{"]"}

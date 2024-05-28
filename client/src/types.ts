@@ -10,6 +10,18 @@ export interface Member {
   username: string;
 }
 
+export interface Friend {
+  username: string;
+}
+
+export interface IncomingFriendRequest {
+  sender: string;
+}
+
+export interface OutgoingFriendRequest {
+  recipient: string;
+}
+
 export type Board = Array<Array<Signal<Piece | undefined>>>;
 
 export interface AckEvent {
