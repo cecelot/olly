@@ -62,16 +62,14 @@ pub async fn incoming(
         .all(state.database.as_ref())
         .await
         .map_err(|e| StringError(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
-    Ok(super::Response::new(
-        frs.iter()
-            .map(|r| {
-                json!({
-                    "sender": r.sender,
-                })
-            })
-            .collect::<Vec<_>>(),
-        StatusCode::OK,
-    ))
+    let mut incoming = vec![];
+    for fr in &frs {
+        let sender = helpers::get_user(&state, &fr.sender.to_string(), false).await?;
+        incoming.push(json!({
+            "sender": sender.username,
+        }));
+    }
+    Ok(super::Response::new(incoming, StatusCode::OK))
 }
 
 pub async fn outgoing(
@@ -83,16 +81,14 @@ pub async fn outgoing(
         .all(state.database.as_ref())
         .await
         .map_err(|e| StringError(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
-    Ok(super::Response::new(
-        frs.iter()
-            .map(|r| {
-                json!({
-                    "recipient": r.recipient,
-                })
-            })
-            .collect::<Vec<_>>(),
-        StatusCode::OK,
-    ))
+    let mut outgoing = vec![];
+    for fr in &frs {
+        let recipient = helpers::get_user(&state, &fr.recipient.to_string(), false).await?;
+        outgoing.push(json!({
+            "recipient": recipient.username,
+        }));
+    }
+    Ok(super::Response::new(outgoing, StatusCode::OK))
 }
 
 pub async fn friends(
@@ -104,17 +100,19 @@ pub async fn friends(
         .all(state.database.as_ref())
         .await
         .map_err(|e| StringError(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
-    Ok(super::Response::new(
-        friends
-            .iter()
-            .map(|f| {
-                json!({
-                    "id": if f.a == user.id { f.a } else { f.b }
-                })
-            })
-            .collect::<Vec<_>>(),
-        StatusCode::OK,
-    ))
+    let mut f = vec![];
+    for friend in &friends {
+        let id = if friend.a == user.id {
+            &friend.b
+        } else {
+            &friend.a
+        };
+        let friend = helpers::get_user(&state, &id.to_string(), false).await?;
+        f.push(json!({
+            "username": friend.username,
+        }));
+    }
+    Ok(super::Response::new(f, StatusCode::OK))
 }
 
 #[cfg(test)]

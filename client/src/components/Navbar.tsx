@@ -22,7 +22,7 @@ export default function Navbar() {
   });
 
   return (
-    <nav class="flex flex-row justify-center p-5 bg-mantle text-mauve">
+    <nav class="flex flex-row justify-center p-5 bg-base text-mauve">
       <div class="space-x-3">
         <A href="/" class="hover:text-pink transition-all">
           {"["}Home{"]"}
@@ -33,8 +33,8 @@ export default function Navbar() {
         <A href="/stats" class="text-mauve hover:text-pink transition-all">
           {"["}Stats{"]"}
         </A>
-        <A href="/friends" class="text-mauve hover:text-pink transition-all">
-          {"["}Friends{"]"}
+        <A href="/account" class="text-mauve hover:text-pink transition-all">
+          {"["}Account{"]"}
         </A>
         <Show
           when={user()}

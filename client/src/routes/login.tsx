@@ -18,7 +18,9 @@ export default function Login() {
         }),
       });
       if (res.status === 200) {
-        window.location.href = "/";
+        window.location.href = decodeURIComponent(
+          new URLSearchParams(window.location.search).get("to") || "/"
+        );
       }
     };
     main();
