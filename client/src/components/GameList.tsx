@@ -1,13 +1,19 @@
 import { A } from "@solidjs/router";
 import { For, Show, createEffect, createSignal } from "solid-js";
-import { simpleGet } from "~/lib";
-import { Game } from "~/types";
+import { currentUser, simpleGet } from "~/lib";
+import { Game, Member } from "~/types";
 
 export default function GameList() {
   const [games, setGames] = createSignal<Game[] | null>(null);
+  const [user, setUser] = createSignal<Member | null>(null);
 
   createEffect(() => {
-    (async () => setGames(await simpleGet("/@me/games")))();
+    (async () => {
+      setUser(await currentUser());
+      if (user()) {
+        setGames(await simpleGet("/@me/games"));
+      }
+    })();
   });
 
   return (
