@@ -151,6 +151,9 @@ export default function Play() {
     (async () => {
       setUser(await currentUser());
       setGameId(new URLSearchParams(window.location.search).get("gameId"));
+      if (gameId() === null) {
+        window.location.href = "/join";
+      }
     })();
   });
 
@@ -166,8 +169,6 @@ export default function Play() {
           );
         } else if (user() === null) {
           window.location.href = `/login?to=${encodeURIComponent("/play")}`;
-        } else if (gameId() === null) {
-          window.location.href = "/join";
         } else {
           return (
             <main class="text-center mx-auto p-4">
