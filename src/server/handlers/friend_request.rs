@@ -88,6 +88,32 @@ pub async fn reply(
     Ok(super::Response::new(json!({}), StatusCode::OK))
 }
 
+pub async fn cancel(
+    State(state): State<Arc<AppState>>,
+    user: User,
+    Path(username): Path<String>,
+) -> Result<impl IntoResponse, Response> {
+    let other = helpers::get_user(&state, &username, true).await?;
+    let Some(request) = FriendRequest::find()
+        .filter(FriendRequestColumn::Sender.eq(user.id))
+        .filter(FriendRequestColumn::Recipient.eq(other.id))
+        .one(state.database.as_ref())
+        .await
+        .map_err(|e| StringError(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?
+    else {
+        return Err(StringError(
+            strings::FRIEND_REQUEST_NOT_FOUND.to_string(),
+            StatusCode::NOT_FOUND,
+        )
+        .into_response());
+    };
+    FriendRequest::delete(request.into_active_model())
+        .exec(state.database.as_ref())
+        .await
+        .map_err(|e| StringError(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
+    Ok(super::Response::new(json!({}), StatusCode::OK))
+}
+
 #[cfg(test)]
 mod tests {
     use crate::server::handlers::Response;

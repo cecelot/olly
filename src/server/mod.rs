@@ -3,7 +3,7 @@ use argon2::PasswordHash;
 use axum::{
     extract::{ws::WebSocketUpgrade, State},
     http::StatusCode,
-    routing::{get, post},
+    routing::{delete, get, post},
     Router,
 };
 use sea_orm::DatabaseConnection;
@@ -62,6 +62,10 @@ pub fn app(database: DatabaseConnection) -> Router {
         .route(
             "/@me/friends/outgoing",
             get(handlers::outgoing).with_state(Arc::clone(&state)),
+        )
+        .route(
+            "/@me/friends/outgoing/:id",
+            delete(handlers::friend_request::cancel).with_state(Arc::clone(&state)),
         )
         .route(
             "/@me/friends/:id/:outcome",
