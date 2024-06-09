@@ -1,5 +1,7 @@
 import { createEffect, createSignal } from "solid-js";
+import CustomToaster from "~/components/CustomToaster";
 import { currentUser } from "~/lib";
+import showToast from "~/lib/showToast";
 import { Member } from "~/types";
 
 export default function Login() {
@@ -29,9 +31,26 @@ export default function Login() {
           password: password(),
         }),
       });
+      const to = decodeURIComponent(
+        new URLSearchParams(window.location.search).get("to") || "/"
+      );
       if (res.status === 200) {
         window.location.href = decodeURIComponent(
           new URLSearchParams(window.location.search).get("to") || "/"
+        );
+      } else {
+        showToast(
+          {
+            403: {
+              text: "The entered password is incorrect. Please try again.",
+              kind: "error",
+            },
+            404: {
+              text: "That user doesn't exist!",
+              kind: "error",
+            },
+          },
+          res.status
         );
       }
     };
@@ -39,7 +58,9 @@ export default function Login() {
   };
 
   return (
-    <main class="text-center mx-auto p-4">
+    <main class="text-center mx-auto m-4">
+      <CustomToaster />
+      <h1 class="text-3xl font-semibold mb-5">Login</h1>
       <form class="flex flex-col mx-auto space-y-3 max-w-60">
         <input
           placeholder="Username"

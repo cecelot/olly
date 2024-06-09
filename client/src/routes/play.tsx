@@ -12,6 +12,7 @@ import {
 import Square from "~/components/Square";
 import { currentUser } from "~/lib/currentUser";
 import { A } from "@solidjs/router";
+import { call } from "~/lib";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -146,6 +147,7 @@ function LiveBoard(props: LiveBoardProps) {
 export default function Play() {
   const [user, setUser] = createSignal<Member | null | undefined>(undefined);
   const [gameId, setGameId] = createSignal<string | null>(null);
+  const [isValidGame, setIsValidGame] = createSignal<boolean>(false);
 
   createEffect(() => {
     (async () => {
@@ -153,13 +155,16 @@ export default function Play() {
       setGameId(new URLSearchParams(window.location.search).get("gameId"));
       if (gameId() === null) {
         window.location.href = "/join";
+      } else {
+        const res = await call(`/game/${gameId()}`, "GET");
+        setIsValidGame(res.status !== 404);
       }
     })();
   });
 
   return (
     <Show
-      when={user() && gameId()?.match(UUID_REGEX)}
+      when={user() && gameId()?.match(UUID_REGEX) && isValidGame()}
       fallback={(() => {
         if (user() === undefined) {
           return (

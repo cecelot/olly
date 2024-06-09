@@ -1,5 +1,6 @@
 import { For, Show, createEffect, createSignal } from "solid-js";
 import { call, simpleGet } from "~/lib";
+import showToast from "~/lib/showToast";
 import { IncomingFriendRequest } from "~/types";
 
 export default function IncomingFriendRequests() {
@@ -11,12 +12,16 @@ export default function IncomingFriendRequests() {
       e.preventDefault();
       const end = accept ? "accept" : "deny";
       (async () => {
-        const resp = await call(`/@me/friends/${sender}/${end}`, "POST");
-        if (resp.status === 200) {
-          alert(`Friend request ${end}ed!`);
-        } else {
-          alert(`An error occurred: ${JSON.stringify(await resp.json())}`);
-        }
+        const res = await call(`/@me/friends/${sender}/${end}`, "POST");
+        showToast(
+          {
+            200: {
+              text: `Friend request ${end}ed!`,
+              kind: "success",
+            },
+          },
+          res.status
+        );
       })();
     };
   };

@@ -1,4 +1,6 @@
 import { createSignal } from "solid-js";
+import CustomToaster from "~/components/CustomToaster";
+import showToast from "~/lib/showToast";
 
 export default function Register() {
   const [username, setUsername] = createSignal<string>("");
@@ -17,20 +19,30 @@ export default function Register() {
           password: password(),
         }),
       });
-      if (res.status === 201) {
-        alert(
-          "Account created! Close this alert to be redirected to the login page."
-        );
-        window.location.href = "/login";
-      } else {
-        alert(`An error occurred: ${JSON.stringify(await res.json())}`);
-      }
+      showToast(
+        {
+          201: {
+            text: `Account created! You will be redirected to the login page shortly.`,
+            kind: "success",
+            afterClose: () => {
+              window.location.href = "/login";
+            },
+          },
+          409: {
+            text: "That username is already taken!",
+            kind: "error",
+          },
+        },
+        res.status
+      );
     };
     main();
   };
 
   return (
     <main class="text-center mx-auto p-4">
+      <CustomToaster />
+      <h1 class="text-3xl font-semibold mb-5">Register</h1>
       <form class="flex flex-col mx-auto space-y-3 max-w-60">
         <input
           placeholder="Username"

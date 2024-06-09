@@ -1,7 +1,9 @@
 import { Show, createEffect, createSignal } from "solid-js";
+import CustomToaster from "~/components/CustomToaster";
 import FriendsList from "~/components/friends/FriendsList";
 import MergedFriendRequests from "~/components/friends/MergedFriendRequests";
 import { currentUser, call } from "~/lib";
+import showToast from "~/lib/showToast";
 import { Member } from "~/types";
 
 export default function Account() {
@@ -13,12 +15,20 @@ export default function Account() {
   ) => {
     e.preventDefault();
     (async () => {
-      const resp = await call(`/users/${friendUsername()}/friend`, "POST");
-      if (resp.status === 201) {
-        alert("Friend request sent!");
-      } else {
-        alert(`An error occurred: ${JSON.stringify(await resp.json())}`);
-      }
+      const res = await call(`/users/${friendUsername()}/friend`, "POST");
+      showToast(
+        {
+          201: {
+            text: `Sent friend request to ${friendUsername()}!`,
+            kind: "success",
+          },
+          404: {
+            text: `That user doesn't exist! Make sure their username is spelled correctly.`,
+            kind: "error",
+          },
+        },
+        res.status
+      );
     })();
   };
 
@@ -33,6 +43,7 @@ export default function Account() {
 
   return (
     <main class="text-center mx-auto p-5 max-w-3xl">
+      <CustomToaster />
       <Show when={user()}>
         <div class="pb-10">
           <h1 class="text-2xl text-text font-extrabold">

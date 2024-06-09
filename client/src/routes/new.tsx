@@ -1,4 +1,5 @@
 import { createSignal } from "solid-js";
+import CustomToaster from "~/components/CustomToaster";
 import { createGame } from "~/lib/createGame";
 
 export default function New() {
@@ -11,6 +12,7 @@ export default function New() {
 
   return (
     <main class="text-center mx-auto p-4">
+      <CustomToaster />
       <form class="flex flex-col mx-auto space-y-3 max-w-80">
         <input
           placeholder="Opponent"
