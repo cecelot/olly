@@ -1,3 +1,4 @@
+use super::StringError;
 use crate::{
     server::{entities::game, extractors::User, helpers, state::AppState},
     Game,
@@ -15,8 +16,6 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use uuid::Uuid;
-
-use super::StringError;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GameRequest {

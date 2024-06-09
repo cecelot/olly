@@ -1,3 +1,4 @@
+use super::StringError;
 use crate::server::{
     entities::{member, prelude::*},
     handlers::Response,
@@ -19,8 +20,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
-
-use super::StringError;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Registration {

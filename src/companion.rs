@@ -64,9 +64,8 @@ impl Companion<'_> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Game, Piece};
-
     use super::Companion;
+    use crate::{Game, Piece};
 
     #[test]
     fn draw() {

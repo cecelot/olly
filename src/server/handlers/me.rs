@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::server::{
     entities::{
         friend::Column as FriendColumn,
@@ -19,6 +17,7 @@ use axum::{
 };
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde_json::json;
+use std::sync::Arc;
 
 pub async fn me(user: User) -> Result<impl IntoResponse, Response> {
     Ok(user)

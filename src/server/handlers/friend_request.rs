@@ -1,3 +1,4 @@
+use super::StringError;
 use crate::server::{
     entities::{
         friend::ActiveModel,
@@ -19,8 +20,6 @@ use sea_orm::{
 };
 use serde_json::json;
 use std::sync::Arc;
-
-use super::StringError;
 
 pub async fn send(
     State(state): State<Arc<AppState>>,

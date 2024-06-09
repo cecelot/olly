@@ -1,3 +1,4 @@
+use super::StringError;
 use crate::server::{extractors::User, helpers, state::AppState, strings::INVALID_GAME_ID};
 use axum::{
     body::Body,
@@ -8,8 +9,6 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
-
-use super::StringError;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Game {

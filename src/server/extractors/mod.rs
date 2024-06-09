@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::server::{
     handlers::{Response, StringError},
     helpers,
@@ -14,6 +12,7 @@ use axum::{
 };
 use axum_extra::extract::CookieJar;
 use serde_json::json;
+use std::sync::Arc;
 use uuid::Uuid;
 
 pub struct User {
