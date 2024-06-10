@@ -4,7 +4,7 @@ Olly is a game client and server for the two-player strategy board game, [Othell
 
 ## Develop
 
-This repository consists of a Rust web server using [axum](https://docs.rs/axum/latest/axum/), and a [Solid](https://solidjs.com) client (in `client/`).
+This repository consists of a Rust web server using [axum](https://docs.rs/axum/latest/axum/), and a [Next.js](https://nextjs.org) client (in `client/`).
 
 It is recommended to use the Nix development shell at the root of this repository to automatically install all necessary dependencies (excluding Docker, which must be installed manually).
 
