@@ -5,16 +5,24 @@ use crate::{
 };
 use axum::{http::StatusCode, response::IntoResponse, Json};
 
+/// The default search depth for the companion. Chosen arbitrarily with the goal of providing quality moves in a reasonable amount of time.
+const DEFAULT_DEPTH: usize = 6;
+
+/// Provide the best available move for the given game state.
 pub async fn companion(
     _: User, // We don't care who the user is, just that this is an authenticated request
     body: Json<Game>,
 ) -> Result<impl IntoResponse, axum::response::Response> {
     let mut companion = Companion::from(&body.0);
-    Ok(Response::new(companion.choice(6), StatusCode::OK))
+    // TODO: Allow the user to specify a custom search depth.
+    let depth = DEFAULT_DEPTH;
+    Ok(Response::new(companion.choice(depth), StatusCode::OK))
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::server;
+    use test_utils::{function, Client};
 
     #[derive(serde::Deserialize)]
     struct Choice {
@@ -24,22 +32,12 @@ mod tests {
 
     #[tokio::test]
     async fn new() {
-        let database = sea_orm::Database::connect("postgres://olly:password@0.0.0.0:5432/olly")
+        let database = sea_orm::Database::connect(server::INSECURE_DEFAULT_DATABASE_URL)
             .await
             .unwrap();
         let url = test_utils::init(crate::server::app(database)).await;
-        let client = test_utils::Client::new();
         let game = crate::Game::new();
-        let credentials = serde_json::json!({
-            "username": "test2",
-            "password": "test2"
-        });
-        client
-            .post::<_, test_utils::Map>(&url, "/register", credentials.clone())
-            .await;
-        client
-            .post::<_, test_utils::Map>(&url, "/login", credentials)
-            .await;
+        let client = Client::authenticated(&[function!()], &url, true).await;
         let choice: Choice = client.post(&url, "/companion", &game).await;
         assert_eq!(choice.code, 200);
         assert_eq!(choice.message, (5, 4));

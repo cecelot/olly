@@ -29,6 +29,8 @@ where
     type Rejection = StringError;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        // Extract the session cookie from the app state. We use `from_request_parts` because we want to be able
+        // to use other extractors after this one, and `from_request` consumes the request.
         let jar = CookieJar::from_request_parts(parts, state).await.unwrap();
         let state: State<Arc<AppState>> = State::from_request_parts(parts, state).await.unwrap();
         let sid = jar
@@ -38,6 +40,7 @@ where
                 StatusCode::UNAUTHORIZED,
             ))?
             .value_trimmed();
+        // Fetch the session associated with the cookie and then fetch the user associated with the session.
         let session = helpers::get_session(&state, sid).await?;
         let user = helpers::get_user(&state, &session, false).await?;
         Ok(User {

@@ -7,6 +7,7 @@ use argon2::{Argon2, PasswordVerifier};
 use sea_orm::{sea_query::OnConflict, ActiveValue, ColumnTrait, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
+/// Hashes a password string.
 fn hash(s: &str) -> Result<PasswordHash, StringError> {
     PasswordHash::new(s).map_err(|_| {
         StringError(
@@ -16,6 +17,7 @@ fn hash(s: &str) -> Result<PasswordHash, StringError> {
     })
 }
 
+/// Fetch a user by their username or ID.
 pub async fn get_user(
     state: &AppState,
     s: &str,
@@ -39,6 +41,7 @@ pub async fn get_user(
     }
 }
 
+/// Fetch a game by its ID.
 pub async fn get_game(state: &AppState, id: &str) -> Result<game::Model, StringError> {
     match Game::find_by_id(Uuid::parse_str(id).unwrap())
         .one(state.database.as_ref())
@@ -56,6 +59,7 @@ pub async fn get_game(state: &AppState, id: &str) -> Result<game::Model, StringE
     }
 }
 
+/// Fetch an authentication session by its token.
 pub async fn get_session(state: &AppState, token: &str) -> Result<String, StringError> {
     match Session::find()
         .filter(session::Column::Key.eq(token))
@@ -74,6 +78,7 @@ pub async fn get_session(state: &AppState, token: &str) -> Result<String, String
     }
 }
 
+/// Create a new authentication session for the specified user.
 pub async fn create_session(
     state: &AppState,
     user: &member::Model,
@@ -101,6 +106,7 @@ pub async fn create_session(
     )
 }
 
+/// Delete an authentication session by its token.
 pub async fn delete_session(state: &AppState, token: String) -> Result<(), StringError> {
     match Session::delete_many()
         .filter(session::Column::Key.eq(token))
@@ -115,6 +121,7 @@ pub async fn delete_session(state: &AppState, token: String) -> Result<(), Strin
     }
 }
 
+/// Verifies that the provided password matches the actual password.
 pub fn ensure_valid_password(actual: &str, provided: &str) -> Result<(), StringError> {
     let hashed = hash(actual)?;
     Argon2::default()

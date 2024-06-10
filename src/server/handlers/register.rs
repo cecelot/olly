@@ -27,6 +27,7 @@ pub struct Registration {
     password: String,
 }
 
+/// Register a new user with the specified username and password.
 pub async fn register(
     State(state): State<Arc<AppState>>,
     body: Result<Json<Registration>, JsonRejection>,
@@ -77,19 +78,20 @@ pub async fn register(
 
 #[cfg(test)]
 mod tests {
-    use crate::server::handlers::Response;
+    use crate::server::{self, handlers::Response};
     use axum::http::StatusCode;
+    use test_utils::function;
 
     #[tokio::test]
     async fn taken() {
-        let database = sea_orm::Database::connect("postgres://olly:password@localhost:5432/olly")
+        let database = sea_orm::Database::connect(server::INSECURE_DEFAULT_DATABASE_URL)
             .await
             .unwrap();
         let url = test_utils::init(crate::server::app(database)).await;
-        let client = test_utils::Client::new();
+        let client = test_utils::Client::authenticated(&[function!()], &url, true).await;
         let credentials = serde_json::json!({
-            "username": "test",
-            "password": "test"
+            "username": function!(),
+            "password": function!()
         });
         let resp: Response<String> = client.post(&url, "/register", credentials).await;
         assert_eq!(resp.code, StatusCode::CONFLICT);
@@ -98,14 +100,14 @@ mod tests {
 
     #[tokio::test]
     async fn success() {
-        let database = sea_orm::Database::connect("postgres://olly:password@localhost:5432/olly")
+        let database = sea_orm::Database::connect(server::INSECURE_DEFAULT_DATABASE_URL)
             .await
             .unwrap();
         let url = test_utils::init(crate::server::app(database)).await;
         let client = test_utils::Client::new();
         let credentials = serde_json::json!({
-            "username": "gandalf",
-            "password": "magic"
+            "username": function!(),
+            "password": function!()
         });
         let resp: Response<test_utils::Map> = client.post(&url, "/register", credentials).await;
         assert_eq!(resp.code, StatusCode::CREATED);

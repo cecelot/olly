@@ -10,6 +10,7 @@ pub struct Credentials {
     password: String,
 }
 
+/// Log the user out of their current session.
 pub async fn logout(State(state): State<Arc<AppState>>, jar: CookieJar) -> impl IntoResponse {
     let Some(token) = jar.get(strings::SESSION_COOKIE_NAME) else {
         return (jar, StatusCode::OK);

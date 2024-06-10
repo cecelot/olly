@@ -18,6 +18,9 @@ mod packet;
 mod state;
 mod strings;
 
+/// This is highly insecure, but useful for development/testing.
+pub const INSECURE_DEFAULT_DATABASE_URL: &str = "postgres://olly:password@0.0.0.0:5432/olly";
+
 pub fn app(database: DatabaseConnection) -> Router {
     let state = Arc::new(AppState::new(database));
     Router::new()

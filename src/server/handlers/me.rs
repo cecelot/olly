@@ -19,10 +19,12 @@ use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde_json::json;
 use std::sync::Arc;
 
+/// Fetch the current user's information.
 pub async fn me(user: User) -> Result<impl IntoResponse, Response> {
     Ok(user)
 }
 
+/// Fetch the games the current user is participating in.
 pub async fn games(
     State(state): State<Arc<AppState>>,
     user: User,
@@ -52,6 +54,7 @@ pub async fn games(
     Ok(super::Response::new(resp, StatusCode::OK))
 }
 
+/// Fetch the friend requests the current user has received.
 pub async fn incoming(
     State(state): State<Arc<AppState>>,
     user: User,
@@ -71,6 +74,7 @@ pub async fn incoming(
     Ok(super::Response::new(incoming, StatusCode::OK))
 }
 
+/// Fetch the friend requests the current user has sent.
 pub async fn outgoing(
     State(state): State<Arc<AppState>>,
     user: User,
@@ -90,6 +94,7 @@ pub async fn outgoing(
     Ok(super::Response::new(outgoing, StatusCode::OK))
 }
 
+/// Fetch the friends of the current user.
 pub async fn friends(
     State(state): State<Arc<AppState>>,
     user: User,
@@ -116,44 +121,17 @@ pub async fn friends(
 
 #[cfg(test)]
 mod tests {
-    use crate::server::handlers::Response;
-    use serde::{Deserialize, Serialize};
-
-    #[derive(Debug, Serialize, Deserialize)]
-    struct Friend {
-        id: String,
-    }
-
-    #[derive(Debug, Serialize, Deserialize)]
-    struct Incoming {
-        sender: String,
-    }
-
-    #[derive(Debug, Serialize, Deserialize)]
-    struct Outgoing {
-        recipient: String,
-    }
+    use crate::server::{self, handlers::Response};
+    use test_utils::{function, Client, Map};
 
     #[tokio::test]
-    #[ignore = "race - for experimental purposes, not a formal test yet"]
-    async fn friends() {
-        let database = sea_orm::Database::connect("postgres://olly:password@localhost:5432/olly")
+    async fn me() {
+        let database = sea_orm::Database::connect(server::INSECURE_DEFAULT_DATABASE_URL)
             .await
             .unwrap();
         let url = test_utils::init(crate::server::app(database)).await;
-        let client = test_utils::Client::new();
-        let credentials = serde_json::json!({
-            "username": "test4",
-            "password": "test4"
-        });
-        client
-            .post::<_, test_utils::Map>(&url, "/login", credentials)
-            .await;
-        let friends: Response<Vec<Friend>> = client.get(&url, "/@me/friends").await;
-        let outgoing: Response<Vec<Outgoing>> = client.get(&url, "/@me/friends/outgoing").await;
-        let incoming: Response<Vec<Incoming>> = client.get(&url, "/@me/friends/incoming").await;
-        println!("{friends:?}");
-        println!("{outgoing:?}");
-        println!("{incoming:?}");
+        let client = Client::authenticated(&[function!()], &url, true).await;
+        let resp: Response<Map> = client.get(&url, "/@me").await;
+        assert_eq!(&resp.message["username"], function!());
     }
 }

@@ -15,17 +15,22 @@ pub struct Game {
     id: String,
 }
 
+/// Retrieve the details for the specified game.
 pub async fn game(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
     user: User,
 ) -> Result<impl IntoResponse, Response<Body>> {
+    // Fetch the user and game from the database.
     let user = helpers::get_user(&state, &user.username, true).await?;
     let game = helpers::get_game(&state, &id).await?;
+    // Convert to strings for more ergonomic comparison.
     let authed = user.id.to_string();
     let host = game.host.to_string();
     let guest = game.guest.to_string();
+    // Ensure that the authenticated user is either the host or the guest.
     (authed == host || authed == guest)
+        // If so, provide the details for the specified game.
         .then(|| {
             Ok(super::Response::new(
                 json!({
@@ -36,6 +41,7 @@ pub async fn game(
                 StatusCode::OK,
             ))
         })
+        // Otherwise, pretend the game does not exist.
         .unwrap_or_else(|| {
             Err(StringError(INVALID_GAME_ID.into(), StatusCode::NOT_FOUND).into_response())
         })
