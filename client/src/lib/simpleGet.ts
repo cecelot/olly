@@ -1,7 +1,7 @@
-import { call } from ".";
+import call from "@/lib/call";
 
-export const simpleGet = async (endpoint: string) => {
+export default async function simpleGet(endpoint: string) {
   const resp = await call(endpoint, "GET");
   const { message } = await resp.json();
   return message;
-};
+}

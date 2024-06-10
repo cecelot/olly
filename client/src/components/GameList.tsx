@@ -1,49 +1,38 @@
-import { A } from "@solidjs/router";
-import { For, Show, createEffect, createSignal } from "solid-js";
-import { currentUser, simpleGet } from "~/lib";
-import { Game, Member } from "~/types";
+"use client";
+
+import Link from "next/link";
+import useGames from "@/lib/useGames";
 
 export default function GameList() {
-  const [games, setGames] = createSignal<Game[] | null>(null);
-  const [user, setUser] = createSignal<Member | null>(null);
+  const { games, isLoading } = useGames();
 
-  createEffect(() => {
-    (async () => {
-      setUser(await currentUser());
-      if (user()) {
-        setGames(await simpleGet("/@me/games"));
-      }
-    })();
-  });
+  if (isLoading) {
+    return <></>;
+  }
 
   return (
     <section>
-      <h3 class="font-bold text-text pb-2">Active Games</h3>
-      <div class="max-h-96 overflow-y-scroll">
-        <Show
-          when={(games()?.length || 0) > 0}
-          fallback={
-            <p class="text-subtext0">
-              No active games! Create one using the button above.
-            </p>
-          }
-        >
-          <ul class="space-y-3">
-            <For each={games()}>
-              {(game) => {
-                return (
-                  <li class="flex-col">
-                    <A
-                      href={`/play?gameId=${game.id}`}
-                      class="text-blue hover:underline-offset-4 hover:underline hover:text-sapphire"
-                    >{`Game against ${game.opponent}`}</A>
-                    <p class="text-sm text-subtext1">{game.id}</p>
-                  </li>
-                );
-              }}
-            </For>
+      <h3 className="font-bold text-text pb-2">Active Games</h3>
+      <div className="max-h-96 overflow-y-scroll">
+        {(games?.length || 0) > 0 ? (
+          <ul className="space-y-3">
+            {games?.map((game) => {
+              return (
+                <li className="flex-col" key={game.id}>
+                  <Link
+                    href={`/play?gameId=${game.id}`}
+                    className="text-blue hover:underline-offset-4 hover:underline hover:text-sapphire"
+                  >{`Game against ${game.opponent}`}</Link>
+                  <p className="text-sm text-subtext1">{game.id}</p>
+                </li>
+              );
+            })}
           </ul>
-        </Show>
+        ) : (
+          <p className="text-subtext0">
+            No active games! Create one using the button above.
+          </p>
+        )}
       </div>
     </section>
   );

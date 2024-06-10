@@ -1,5 +1,3 @@
-import { Accessor, Signal } from "solid-js";
-
 export enum Piece {
   Black,
   White,
@@ -27,7 +25,7 @@ export interface OutgoingFriendRequest {
   recipient: string;
 }
 
-export type Board = Array<Array<Signal<Piece | undefined>>>;
+export type Board = Array<Array<Piece | null>>;
 
 export interface AckEvent {
   op: 1;
@@ -76,9 +74,11 @@ export interface Context<T> {
   ws: WebSocket;
   ev: T;
   board: Board;
-  token: Accessor<string | undefined>;
-  gameId: Accessor<string | null>;
+  token: string | undefined;
+  gameId: string | null;
+  setReady: (ready: boolean) => void;
   setTurn: (turn: Piece) => void;
+  setBoard: (board: Board) => void;
   setColor: (color: Piece) => void;
   setPreview: (preview: Array<[number, number]> | undefined) => void;
 }

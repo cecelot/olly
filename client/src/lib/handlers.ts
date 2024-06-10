@@ -1,4 +1,4 @@
-import { simpleGet } from "~/lib";
+import simpleGet from "@/lib/simpleGet";
 import {
   ReadyEvent,
   Piece,
@@ -7,31 +7,15 @@ import {
   ErrorEvent,
   PreviewEvent,
   Context,
-} from "~/types";
-
+} from "@/types";
 export function handleAckEvent(_: Context<AckEvent>) {}
 
 export function handleReady(context: Context<ReadyEvent>) {
-  const { token, gameId, ws, setColor } = context;
-  ws.send(
-    JSON.stringify({
-      op: 3,
-      t: token(),
-      d: {
-        type: "Join",
-        id: gameId(),
-      },
-    })
-  );
-  (async () => {
-    const { host } = await simpleGet(`/game/${gameId()}`);
-    const { id } = await simpleGet("/@me");
-    setColor(host === id ? Piece.Black : Piece.White);
-  })();
+  context.setReady(true);
 }
 
 export function handleGameUpdate(context: Context<GameUpdateEvent>) {
-  const { ev, board, setTurn, setPreview } = context;
+  const { ev, board, setTurn, setPreview, setBoard } = context;
   const { board: gameBoard, turn } = ev.d.game;
   for (let i = 0; i < 64; i++) {
     const row = Math.floor(i / 8);
@@ -39,10 +23,10 @@ export function handleGameUpdate(context: Context<GameUpdateEvent>) {
     const piece = gameBoard[i];
     if (piece !== null) {
       const color = piece === "White" ? Piece.White : Piece.Black;
-      const [, setPiece] = board[row][col];
-      setPiece(() => color);
+      board[row][col] = color;
     }
   }
+  setBoard(board);
   setTurn(turn === "White" ? Piece.White : Piece.Black);
   setPreview(undefined);
 }

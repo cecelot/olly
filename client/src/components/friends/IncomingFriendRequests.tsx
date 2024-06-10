@@ -1,59 +1,54 @@
-import { For, Show, createEffect, createSignal } from "solid-js";
-import { call, simpleGet } from "~/lib";
-import showToast from "~/lib/showToast";
-import { IncomingFriendRequest } from "~/types";
+import call from "@/lib/call";
+import simpleGet from "@/lib/simpleGet";
+import { IncomingFriendRequest } from "@/types";
+import { useEffect, useState } from "react";
 
 export default function IncomingFriendRequests() {
   const [incomingFriendRequests, setIncomingFriendRequests] =
-    createSignal<IncomingFriendRequest[]>();
+    useState<IncomingFriendRequest[]>();
 
   const onClick = (sender: string, accept: boolean) => {
-    return async (e: MouseEvent & { currentTarget: HTMLButtonElement }) => {
+    return async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
       e.preventDefault();
       const end = accept ? "accept" : "deny";
       (async () => {
         const res = await call(`/@me/friends/${sender}/${end}`, "POST");
-        showToast(
-          {
-            200: {
-              text: `Friend request ${end}ed!`,
-              kind: "success",
-            },
-          },
-          res.status
-        );
+        if (res.status === 200) {
+          alert(`Friend request ${end}ed!`);
+        } else {
+          alert(`Failed to ${end} friend request.`);
+        }
       })();
     };
   };
 
-  createEffect(() => {
+  useEffect(() => {
     (async () =>
       setIncomingFriendRequests(await simpleGet("/@me/friends/incoming")))();
   });
 
-  return (
-    <Show when={(incomingFriendRequests()?.length || 0) > 0}>
-      <For each={incomingFriendRequests()}>
-        {(request) => {
-          return (
-            <li class="flex flex-row space-x-3 justify-center">
-              <p class="text-text">{request.sender}</p>
-              <button
-                onClick={onClick(request.sender, true)}
-                class="text-mauve hover:text-pink transition-all"
-              >
-                {"["}Accept{"]"}
-              </button>
-              <button
-                onClick={onClick(request.sender, false)}
-                class="text-mauve hover:text-pink transition-all"
-              >
-                {"["}Deny{"]"}
-              </button>
-            </li>
-          );
-        }}
-      </For>
-    </Show>
+  return (incomingFriendRequests?.length || 0) > 0 ? (
+    incomingFriendRequests?.map((request) => (
+      <li
+        className="flex flex-row space-x-3 justify-center"
+        key={`${request.sender}-incoming`}
+      >
+        <p className="text-text">{request.sender}</p>
+        <button
+          onClick={onClick(request.sender, true)}
+          className="text-mauve hover:text-pink transition-all"
+        >
+          {"["}Accept{"]"}
+        </button>
+        <button
+          onClick={onClick(request.sender, false)}
+          className="text-mauve hover:text-pink transition-all"
+        >
+          {"["}Deny{"]"}
+        </button>
+      </li>
+    ))
+  ) : (
+    <></>
   );
 }
