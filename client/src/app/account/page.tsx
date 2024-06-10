@@ -3,7 +3,7 @@
 import FriendsList from "@/components/friends/FriendsList";
 import MergedFriendRequests from "@/components/friends/MergedFriendRequests";
 import call from "@/lib/call";
-import useUser from "@/lib/useUser";
+import useUser from "@/lib/hooks/useUser";
 import { Button, Input } from "@headlessui/react";
 import Link from "next/link";
 import { useState } from "react";
@@ -28,9 +28,7 @@ export default function Account() {
     })();
   };
 
-  if (isLoading) {
-    return <></>;
-  }
+  if (isLoading) return <></>;
 
   return (
     <main className="text-center mx-auto p-5 max-w-3xl">

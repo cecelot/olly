@@ -9,13 +9,14 @@ use crate::server::{
     handlers::StringError,
     helpers,
     state::AppState,
+    strings,
 };
 use axum::{
-    extract::State,
+    extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, EntityTrait, ModelTrait, QueryFilter};
 use serde_json::json;
 use std::sync::Arc;
 
@@ -117,6 +118,40 @@ pub async fn friends(
         }));
     }
     Ok(super::Response::new(f, StatusCode::OK))
+}
+
+/// Remove a friend from the current user's friend list.
+pub async fn remove_friend(
+    State(state): State<Arc<AppState>>,
+    user: User,
+    Path(friend): Path<String>,
+) -> Result<impl IntoResponse, Response> {
+    let friend = helpers::get_user(&state, &friend, true).await?;
+    let Some(friend) = Friend::find()
+        .filter(
+            FriendColumn::A
+                .eq(user.id)
+                .and(FriendColumn::B.eq(friend.id))
+                .or(FriendColumn::A
+                    .eq(friend.id)
+                    .and(FriendColumn::B.eq(user.id))),
+        )
+        .one(state.database.as_ref())
+        .await
+        .map_err(|e| StringError(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?
+    else {
+        return Err(
+            StringError(strings::FRIEND_NOT_FOUND.into(), StatusCode::NOT_FOUND).into_response(),
+        );
+    };
+    let result = friend
+        .delete(state.database.as_ref())
+        .await
+        .map_err(|e| StringError(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
+    Ok(super::Response::new(
+        json!({ "affected": result.rows_affected }),
+        StatusCode::OK,
+    ))
 }
 
 #[cfg(test)]

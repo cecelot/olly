@@ -1,17 +1,31 @@
 "use client";
 
+import call from "@/lib/call";
 import { createGame } from "@/lib/createGame";
+import useFriends from "@/lib/hooks/useFriends";
 import simpleGet from "@/lib/simpleGet";
 import { Friend } from "@/types";
 import { Button } from "@headlessui/react";
 import { useState } from "react";
 
 export default function FriendsList() {
-  const [friends, setFriends] = useState<Friend[]>();
+  const { isLoading, friends } = useFriends();
 
-  useState(() => {
-    (async () => setFriends(await simpleGet("/@me/friends")))();
-  });
+  const removeFriend = (username: string) => {
+    return async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+      e.preventDefault();
+      (async () => {
+        const res = await call(`/@me/friends/${username}`, "DELETE");
+        if (res.status === 200) {
+          alert(`Removed ${username} from your friends list.`);
+        } else {
+          alert(`Failed to remove ${username} from your friends list.`);
+        }
+      })();
+    };
+  };
+
+  if (isLoading) return <></>;
 
   return (
     <section className="py-10 text-left">
@@ -33,7 +47,10 @@ export default function FriendsList() {
               >
                 {"["}Play{"]"}
               </Button>
-              <Button className="text-mauve hover:text-pink transition-all">
+              <Button
+                onClick={removeFriend(friend.username)}
+                className="text-mauve hover:text-pink transition-all"
+              >
                 {"["}Remove{"]"}
               </Button>
             </li>

@@ -1,12 +1,9 @@
 import call from "@/lib/call";
-import simpleGet from "@/lib/simpleGet";
-import { OutgoingFriendRequest } from "@/types";
+import useOutgoingFriendRequests from "@/lib/hooks/useOutgoingFriendRequests";
 import { Button } from "@headlessui/react";
-import { useEffect, useState } from "react";
 
 export default function OutgoingFriendRequests() {
-  const [outgoingFriendRequests, setOutgoingFriendRequests] =
-    useState<OutgoingFriendRequest[]>();
+  const { isLoading, outgoingFriendRequests } = useOutgoingFriendRequests();
 
   const cancelFriendRequest = (recipient: string) => {
     return async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
@@ -22,10 +19,7 @@ export default function OutgoingFriendRequests() {
     };
   };
 
-  useEffect(() => {
-    (async () =>
-      setOutgoingFriendRequests(await simpleGet("/@me/friends/outgoing")))();
-  });
+  if (isLoading) return <></>;
 
   return (outgoingFriendRequests?.length || 0) > 0 ? (
     outgoingFriendRequests?.map((request) => (

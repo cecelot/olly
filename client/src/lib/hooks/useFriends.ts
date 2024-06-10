@@ -1,17 +1,17 @@
 import useSWR, { SWRResponse } from "swr";
 import { BASE_API_URL } from "@/lib";
-import useUser from "@/lib/useUser";
-import { Game } from "@/types";
+import useUser from "@/lib/hooks/useUser";
+import { Friend } from "@/types";
 
-interface MyGamesRoute {
-  message: Game[];
+interface MyFriendsRoute {
+  message: Friend[];
   code: number;
 }
 
-export default function useGames() {
+export default function useFriends() {
   const { authenticated } = useUser();
-  const { data, isLoading }: SWRResponse<MyGamesRoute> = useSWR(
-    `${BASE_API_URL}/@me/games`,
+  const { data, isLoading }: SWRResponse<MyFriendsRoute> = useSWR(
+    `${BASE_API_URL}/@me/friends`,
     async (url) => {
       const res = await fetch(url, {
         credentials: "include",
@@ -23,6 +23,6 @@ export default function useGames() {
   );
   return {
     isLoading,
-    games: isLoading || !authenticated ? null : data?.message,
+    friends: isLoading || !authenticated ? null : data?.message,
   };
 }

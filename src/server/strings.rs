@@ -9,3 +9,4 @@ pub const INVALID_PASSWORD: &str = "password does not match";
 pub const INVALID_TOKEN: &str = "invalid user token";
 pub const SESSION_COOKIE_NAME: &str = "sid";
 pub const FRIEND_REQUEST_NOT_FOUND: &str = "no friend request exists from that user";
+pub const FRIEND_NOT_FOUND: &str = "authenticated user is not friends with that user";

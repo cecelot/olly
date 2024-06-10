@@ -17,7 +17,7 @@ pub use game::game;
 pub use live::callback;
 pub use login::login;
 pub use logout::logout;
-pub use me::{friends, games, incoming, me, outgoing};
+pub use me::{friends, games, incoming, me, outgoing, remove_friend};
 pub use register::register;
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -59,6 +59,10 @@ pub fn app(database: DatabaseConnection) -> Router {
             get(handlers::friends).with_state(Arc::clone(&state)),
         )
         .route(
+            "/@me/friends/:id",
+            delete(handlers::remove_friend).with_state(Arc::clone(&state)),
+        )
+        .route(
             "/@me/friends/incoming",
             get(handlers::incoming).with_state(Arc::clone(&state)),
         )

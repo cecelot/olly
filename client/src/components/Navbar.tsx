@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import useUser from "@/lib/useUser";
+import useUser from "@/lib/hooks/useUser";
 
 export default function Navbar() {
   const { user, isLoading, authenticated } = useUser();

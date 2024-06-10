@@ -1,14 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import useGames from "@/lib/useGames";
+import useGames from "@/lib/hooks/useGames";
 
 export default function GameList() {
   const { games, isLoading } = useGames();
 
-  if (isLoading) {
-    return <></>;
-  }
+  if (isLoading) return <></>;
 
   return (
     <section>

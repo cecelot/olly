@@ -9,7 +9,7 @@ import {
 } from "@/lib/handlers";
 import { Board, Piece, Event } from "@/types";
 import { useEffect, useState } from "react";
-import Square from "@/components/Square";
+import Square from "@/components/board/Square";
 import useWebSocket from "react-use-websocket";
 import cookie from "cookie";
 import simpleGet from "@/lib/simpleGet";

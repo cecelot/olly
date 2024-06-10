@@ -1,11 +1,8 @@
 import call from "@/lib/call";
-import simpleGet from "@/lib/simpleGet";
-import { IncomingFriendRequest } from "@/types";
-import { useEffect, useState } from "react";
+import useIncomingFriendRequests from "@/lib/hooks/useIncomingFriendRequests";
 
 export default function IncomingFriendRequests() {
-  const [incomingFriendRequests, setIncomingFriendRequests] =
-    useState<IncomingFriendRequest[]>();
+  const { isLoading, incomingFriendRequests } = useIncomingFriendRequests();
 
   const onClick = (sender: string, accept: boolean) => {
     return async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
@@ -22,10 +19,7 @@ export default function IncomingFriendRequests() {
     };
   };
 
-  useEffect(() => {
-    (async () =>
-      setIncomingFriendRequests(await simpleGet("/@me/friends/incoming")))();
-  });
+  if (isLoading) return <></>;
 
   return (incomingFriendRequests?.length || 0) > 0 ? (
     incomingFriendRequests?.map((request) => (

@@ -1,6 +1,6 @@
 import cs from "classnames";
-import Circle from "@/components/Circle";
-import { Piece } from "../types";
+import Circle from "@/components/board/Circle";
+import { Piece } from "../../types";
 
 interface SquareProps {
   onClick: () => void;
