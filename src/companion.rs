@@ -71,12 +71,10 @@ mod tests {
     fn draw() {
         let mut game = Game::new();
         let mut piece = Piece::Black;
-        // println!("{game}");
         while !game.over() {
             let mut companion = Companion::from(&game);
             let (x, y) = companion.choice(6);
             game.place(x, y, piece).unwrap();
-            // println!("{game}");
             piece = !piece;
         }
         assert_eq!(game.score(), (32, 32));

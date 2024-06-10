@@ -154,11 +154,9 @@ mod tests {
     fn valid_placement() {
         let mut state = Game::new();
         assert_eq!(state.turn, Piece::Black);
-        // println!("{:?}", state.board);
         let outcome = state.place(2, 3, Piece::Black);
         assert!(outcome.is_ok());
         assert_eq!(state.turn, Piece::White);
-        // println!("{:?}", state.board);
     }
 
     #[test]
