@@ -13,6 +13,7 @@ import Square from "@/components/board/Square";
 import useWebSocket from "react-use-websocket";
 import cookie from "cookie";
 import simpleGet from "@/lib/simpleGet";
+import call from "@/lib/call";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -153,13 +154,45 @@ function LiveBoard({ gameId }: LiveBoardProps) {
   );
 }
 
+interface StatusTextProps {
+  text: string;
+}
+
+function StatusText({ text }: StatusTextProps) {
+  return (
+    <main className="flex justify-center text-center">
+      <section className="flex flex-col max-h-screen items-center p-5">
+        <h1 className="text-text">{text}</h1>
+      </section>
+    </main>
+  );
+}
+
 export default function Play() {
   const [gameId, setGameId] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(true);
+  const [isValidGame, setIsValidGame] = useState(true);
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("gameId") || "";
     setGameId(id);
+    (async () => {
+      const game = await call(`/game/${id}`, "GET");
+      console.log(await game.json());
+      setVerifying(false);
+      if (game.status !== 200) {
+        setIsValidGame(false);
+      }
+    })();
   }, [gameId]);
 
-  return gameId?.match(UUID_REGEX) ? <LiveBoard gameId={gameId} /> : <></>;
+  if (verifying) {
+    return <StatusText text="Loading..." />;
+  }
+
+  return gameId?.match(UUID_REGEX) && isValidGame ? (
+    <LiveBoard gameId={gameId} />
+  ) : (
+    <StatusText text="Invalid Game ID provided" />
+  );
 }
