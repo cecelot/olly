@@ -45,7 +45,6 @@ function LiveBoard({ gameId }: LiveBoardProps) {
   const { sendJsonMessage } = useWebSocket("ws://0.0.0.0:3000/live", {
     onMessage: (msg) => {
       const data: Event = JSON.parse(msg.data);
-      console.log(data);
       const handlers = {
         1: handleAckEvent,
         2: handleReady,

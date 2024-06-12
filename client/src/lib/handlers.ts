@@ -1,4 +1,3 @@
-import simpleGet from "@/lib/simpleGet";
 import {
   ReadyEvent,
   Piece,
