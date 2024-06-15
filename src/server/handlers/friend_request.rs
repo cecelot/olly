@@ -1,7 +1,7 @@
 use super::StringError;
 use crate::server::{
     entities::{
-        friend::ActiveModel,
+        friend::{ActiveModel, Column as FriendColumn},
         friend_request::{ActiveModel as FriendRequestAM, Column as FriendRequestColumn},
         prelude::{Friend, FriendRequest},
     },
@@ -15,9 +15,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use sea_orm::{
-    ActiveValue, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, QueryFilter, RuntimeErr,
-};
+use sea_orm::{ActiveValue, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter};
 use serde_json::json;
 use std::sync::Arc;
 
@@ -29,6 +27,55 @@ pub async fn send(
 ) -> Result<impl IntoResponse, Response> {
     // Fetch the user object associated with the recipient username to ensure that it exists.
     let other = helpers::get_user(&state, &username, true).await?;
+    // A user can't become friends with themself.
+    if user.id == other.id {
+        return Err(
+            StringError(strings::FRIEND_SELF.to_string(), StatusCode::BAD_REQUEST).into_response(),
+        );
+    }
+    // Check if the two users are already friends.
+    let friend = Friend::find()
+        .filter(
+            FriendColumn::A
+                .eq(user.id)
+                .and(FriendColumn::B.eq(other.id))
+                .or(FriendColumn::A
+                    .eq(other.id)
+                    .and(FriendColumn::B.eq(user.id))),
+        )
+        .one(state.database.as_ref())
+        .await
+        .map_err(|e| StringError(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
+    if friend.is_some() {
+        return Err(StringError(
+            strings::ALREADY_FRIENDS.to_string(),
+            StatusCode::BAD_REQUEST,
+        )
+        .into_response());
+    }
+    // Fetch a friend request record associated with the sender and recipient to see if one already exists.
+    let request = FriendRequest::find()
+        .filter(
+            FriendRequestColumn::Sender
+                .eq(user.id)
+                .or(FriendRequestColumn::Recipient.eq(user.id)),
+        )
+        .filter(
+            FriendRequestColumn::Recipient
+                .eq(other.id)
+                .or(FriendRequestColumn::Sender.eq(other.id)),
+        )
+        .one(state.database.as_ref())
+        .await
+        .map_err(|e| StringError(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
+    // Disallow friend requests between two users (no matter who initiated it) if one already exists.
+    if request.is_some() {
+        return Err(StringError(
+            strings::FRIEND_REQUEST_ALREADY_SENT.to_string(),
+            StatusCode::CONFLICT,
+        )
+        .into_response());
+    }
     let request = FriendRequestAM {
         sender: ActiveValue::Set(user.id),
         recipient: ActiveValue::Set(other.id),
@@ -37,18 +84,7 @@ pub async fn send(
     let model = FriendRequest::insert(request)
         .exec(state.database.as_ref())
         .await;
-    let model = model.map_err(|e| match e {
-        DbErr::Exec(RuntimeErr::SqlxError(e))
-            if e.as_database_error()
-                .is_some_and(|e| e.code().is_some_and(|code| code == "23505")) =>
-        {
-            StringError(
-                strings::FRIEND_REQUEST_ALREADY_SENT.into(),
-                StatusCode::CONFLICT,
-            )
-        }
-        _ => StringError(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR),
-    })?;
+    let model = model.map_err(|e| StringError(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
     Ok(super::Response::new(
         json!({ "id": model.last_insert_id}),
         StatusCode::CREATED,

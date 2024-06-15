@@ -5,6 +5,8 @@ pub const PASSWORD_NO_ALPHA: &str = "Password must contain at least one alphabet
 pub const PASSWORD_NO_NUMERIC: &str = "Password must contain at least one number.";
 pub const INVALID_USERNAME: &str =
     "That user doesn't exist! Make sure their username is spelled correctly.";
+pub const ALREADY_FRIENDS: &str = "You're already friends with that user!";
+pub const FRIEND_SELF: &str = "You can't friend yourself!";
 
 // -- internal --
 pub const FRIEND_REQUEST_ALREADY_SENT: &str = "friend request already sent";

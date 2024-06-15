@@ -31,9 +31,26 @@ export default function Account() {
         setStatusText(`Friend request sent to ${friendUsername}!`);
       } else {
         setErrored(true);
-        setStatusText(
-          `That user doesn't exist! Make sure their username is spelled correctly.`
-        );
+        switch (res.status) {
+          case 409:
+            setStatusText(
+              `You already have a pending friend request with ${friendUsername}!`
+            );
+            break;
+          case 404:
+            setStatusText(
+              `That user doesn't exist! Make sure their username is spelled correctly.`
+            );
+            break;
+          case 400:
+            const { message } = await res.json();
+            setStatusText(message);
+            break;
+          default:
+            setStatusText(
+              `An unexpected error occurred. Please try again later.`
+            );
+        }
       }
     })();
   };
