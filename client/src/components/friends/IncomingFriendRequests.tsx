@@ -1,5 +1,7 @@
-import call from "@/lib/call";
+import { TOAST_ERROR_OPTIONS, TOAST_SUCCESS_OPTIONS } from "@/lib";
 import useIncomingFriendRequests from "@/lib/hooks/useIncomingFriendRequests";
+import call from "@/lib/call";
+import toast from "react-hot-toast";
 
 export default function IncomingFriendRequests() {
   const { isLoading, incomingFriendRequests } = useIncomingFriendRequests();
@@ -11,9 +13,9 @@ export default function IncomingFriendRequests() {
       (async () => {
         const res = await call(`/@me/friends/${sender}/${end}`, "POST");
         if (res.status === 200) {
-          alert(`Friend request ${end}ed!`);
+          toast.success(`Friend request ${end}ed!`, TOAST_SUCCESS_OPTIONS);
         } else {
-          alert(`Failed to ${end} friend request.`);
+          toast.error(`Failed to ${end} friend request.`, TOAST_ERROR_OPTIONS);
         }
       })();
     };

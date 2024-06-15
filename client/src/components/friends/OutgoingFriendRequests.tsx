@@ -1,6 +1,8 @@
+import { TOAST_ERROR_OPTIONS, TOAST_SUCCESS_OPTIONS } from "@/lib";
 import call from "@/lib/call";
 import useOutgoingFriendRequests from "@/lib/hooks/useOutgoingFriendRequests";
 import { Button } from "@headlessui/react";
+import toast from "react-hot-toast";
 
 export default function OutgoingFriendRequests() {
   const { isLoading, outgoingFriendRequests } = useOutgoingFriendRequests();
@@ -11,9 +13,12 @@ export default function OutgoingFriendRequests() {
       (async () => {
         const res = await call(`/@me/friends/outgoing/${recipient}`, "DELETE");
         if (res.status === 200) {
-          alert(`Cancelled friend request to ${recipient}.`);
+          toast.success(
+            `Cancelled friend request to ${recipient}.`,
+            TOAST_SUCCESS_OPTIONS
+          );
         } else {
-          alert(`Failed to cancel friend request.`);
+          toast.error(`Failed to cancel friend request.`, TOAST_ERROR_OPTIONS);
         }
       })();
     };

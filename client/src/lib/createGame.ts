@@ -1,4 +1,5 @@
-import { BASE_API_URL } from ".";
+import toast from "react-hot-toast";
+import { BASE_API_URL, TOAST_ERROR_OPTIONS } from ".";
 
 export const createGame = async (opponent: string) => {
   const res = await fetch(`${BASE_API_URL}/game`, {
@@ -15,6 +16,7 @@ export const createGame = async (opponent: string) => {
     const { message } = await res.json();
     window.location.href = `/play?gameId=${message.id}`;
   } else {
-    alert("An unexpected error occurred!");
+    const { message } = await res.json();
+    toast.error(message, TOAST_ERROR_OPTIONS);
   }
 };

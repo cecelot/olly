@@ -1,9 +1,11 @@
 "use client";
 
+import { TOAST_ERROR_OPTIONS, TOAST_SUCCESS_OPTIONS } from "@/lib";
 import call from "@/lib/call";
 import { createGame } from "@/lib/createGame";
 import useFriends from "@/lib/hooks/useFriends";
 import { Button } from "@headlessui/react";
+import toast from "react-hot-toast";
 
 export default function FriendsList() {
   const { isLoading, friends } = useFriends();
@@ -14,9 +16,15 @@ export default function FriendsList() {
       (async () => {
         const res = await call(`/@me/friends/${username}`, "DELETE");
         if (res.status === 200) {
-          alert(`Removed ${username} from your friends list.`);
+          toast.success(
+            `Removed ${username} from your friends list.`,
+            TOAST_SUCCESS_OPTIONS
+          );
         } else {
-          alert(`Failed to remove ${username} from your friends list.`);
+          toast.error(
+            `Failed to remove ${username} from your friends list.`,
+            TOAST_ERROR_OPTIONS
+          );
         }
       })();
     };

@@ -6,11 +6,20 @@ import call from "@/lib/call";
 import useUser from "@/lib/hooks/useUser";
 import { Button, Input } from "@headlessui/react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import cn from "classnames";
 
 export default function Account() {
   const { user, isLoading } = useUser();
   const [friendUsername, setFriendUsername] = useState("");
+  const [statusText, setStatusText] = useState("");
+  const [errored, setErrored] = useState(false);
+
+  // Clear the status text when the user starts to edit the entered username
+  useEffect(() => {
+    setErrored(false);
+    setStatusText("");
+  }, [friendUsername]);
 
   const sendFriendRequest = (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>
@@ -19,9 +28,10 @@ export default function Account() {
     (async () => {
       const res = await call(`/users/${friendUsername}/friend`, "POST");
       if (res.status === 201) {
-        alert(`Sent friend request to ${friendUsername}!`);
+        setStatusText(`Friend request sent to ${friendUsername}!`);
       } else {
-        alert(
+        setErrored(true);
+        setStatusText(
           `That user doesn't exist! Make sure their username is spelled correctly.`
         );
       }
@@ -53,6 +63,14 @@ export default function Account() {
               Send Friend Request
             </Button>
           </form>
+          <p
+            className={cn("pt-2", {
+              "text-red": errored,
+              "text-green": !errored,
+            })}
+          >
+            {statusText}
+          </p>
           <section className="grid grid-cols-2">
             <FriendsList />
             <MergedFriendRequests />

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Inclusive_Sans } from "next/font/google";
-import "./globals.css";
 import Navbar from "@/components/Navbar";
+import { Toaster } from "react-hot-toast";
+import "./globals.css";
 
 const inclusiveSans = Inclusive_Sans({
   weight: "400",
@@ -21,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="latte bg-base">
       <body className={inclusiveSans.className}>
+        <Toaster />
         <Navbar />
         {children}
       </body>
