@@ -177,7 +177,6 @@ export default function Play() {
     setGameId(id);
     (async () => {
       const game = await call(`/game/${id}`, "GET");
-      console.log(await game.json());
       setVerifying(false);
       if (game.status !== 200) {
         setIsValidGame(false);
