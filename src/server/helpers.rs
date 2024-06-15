@@ -43,10 +43,13 @@ pub async fn get_user(
 
 /// Fetch a game by its ID.
 pub async fn get_game(state: &AppState, id: &str) -> Result<game::Model, StringError> {
-    match Game::find_by_id(Uuid::parse_str(id).unwrap())
-        .one(state.database.as_ref())
-        .await
-    {
+    let id = Uuid::parse_str(id).map_err(|_| {
+        StringError(
+            strings::INVALID_GAME_ID.to_string(),
+            StatusCode::BAD_REQUEST,
+        )
+    })?;
+    match Game::find_by_id(id).one(state.database.as_ref()).await {
         Ok(Some(game)) => Ok(game),
         Ok(None) => Err(StringError(
             strings::INVALID_GAME_ID.to_string(),
