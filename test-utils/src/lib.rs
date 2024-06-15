@@ -12,7 +12,7 @@ use tokio::net::TcpListener;
 /// because a single test cannot rely on another test to have run first
 /// and created a user.
 ///
-/// Stolen from: https://stackoverflow.com/a/63904992
+/// Adapted from: https://stackoverflow.com/a/63904992
 macro_rules! function {
     () => {{
         fn f() {}
@@ -20,7 +20,11 @@ macro_rules! function {
             std::any::type_name::<T>()
         }
         let name = type_name_of(f);
-        &name[..name.len() - 3]
+        let mut actual = String::new();
+        actual.push_str(&name[..name.len() - 3]);
+        // This ensures that the password meets the minimum requirements.
+        actual.push('1');
+        actual
     }};
 }
 

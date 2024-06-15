@@ -37,7 +37,7 @@ mod tests {
             .unwrap();
         let url = test_utils::init(crate::server::app(database)).await;
         let game = crate::Game::new();
-        let client = Client::authenticated(&[function!()], &url, true).await;
+        let client = Client::authenticated(&[&function!()], &url, true).await;
         let choice: Choice = client.post(&url, "/companion", &game).await;
         assert_eq!(choice.code, 200);
         assert_eq!(choice.message, (5, 4));

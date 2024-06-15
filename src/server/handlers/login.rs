@@ -53,7 +53,7 @@ mod tests {
             .await
             .unwrap();
         let url = test_utils::init(crate::server::app(database)).await;
-        let client = Client::authenticated(&[function!()], &url, true).await;
+        let client = Client::authenticated(&[&function!()], &url, true).await;
         let res: serde_json::Value = client.get(&url, "/@me").await;
         assert_eq!(&res["code"], &200);
     }

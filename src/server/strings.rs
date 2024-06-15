@@ -1,3 +1,10 @@
+// Public-facing error messages
+pub const USERNAME_TOO_SHORT: &str = "Username must be at least 3 characters.";
+pub const PASSWORD_TOO_SHORT: &str = "Password must be at least 8 characters.";
+pub const PASSWORD_NO_ALPHA: &str = "Password must contain at least one alphabetic character.";
+pub const PASSWORD_NO_NUMERIC: &str = "Password must contain at least one number.";
+
+// -- internal --
 pub const FRIEND_REQUEST_ALREADY_SENT: &str = "friend request already sent";
 pub const IDENTIFY_TIMEOUT: &str = "connection timed out";
 pub const INVALID_GAME_ID: &str = "no game exists with specified id";

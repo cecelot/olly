@@ -41,6 +41,34 @@ pub async fn register(
             StatusCode::BAD_REQUEST,
         )
     })?;
+    // Ensure that the username is at least 3 characters long. Totally arbitrary.
+    if username.len() < 3 {
+        return Err(
+            StringError(strings::USERNAME_TOO_SHORT.into(), StatusCode::BAD_REQUEST).into(),
+        );
+    }
+    // Make sure that the password is at least 8 characters long. Protects against grossly insecure
+    // passwords while not being too annoying for uncaring users.
+    if password.len() < 8 {
+        return Err(
+            StringError(strings::PASSWORD_TOO_SHORT.into(), StatusCode::BAD_REQUEST).into(),
+        );
+    }
+    // Ensure that the password contains at least one alphabetic character and one number.
+    // An additional check to ensure the password isn't horribly insecure.
+    match password {
+        _ if !password.contains(|c: char| c.is_alphabetic()) => {
+            return Err(
+                StringError(strings::PASSWORD_NO_ALPHA.into(), StatusCode::BAD_REQUEST).into(),
+            );
+        }
+        _ if !password.contains(|c: char| c.is_numeric()) => {
+            return Err(
+                StringError(strings::PASSWORD_NO_NUMERIC.into(), StatusCode::BAD_REQUEST).into(),
+            );
+        }
+        _ => {}
+    }
     let id = Uuid::now_v7();
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
@@ -88,7 +116,7 @@ mod tests {
             .await
             .unwrap();
         let url = test_utils::init(crate::server::app(database)).await;
-        let client = test_utils::Client::authenticated(&[function!()], &url, true).await;
+        let client = test_utils::Client::authenticated(&[&function!()], &url, true).await;
         let credentials = serde_json::json!({
             "username": function!(),
             "password": function!()

@@ -160,7 +160,7 @@ mod tests {
             .await
             .unwrap();
         let url = test_utils::init(crate::server::app(database)).await;
-        send_friend_request(function!(), &url).await;
+        send_friend_request(&function!(), &url).await;
     }
 
     #[tokio::test]
@@ -169,7 +169,7 @@ mod tests {
             .await
             .unwrap();
         let url = test_utils::init(crate::server::app(database)).await;
-        let SentRequest { sender, recipient } = send_friend_request(function!(), &url).await;
+        let SentRequest { sender, recipient } = send_friend_request(&function!(), &url).await;
         let client = Client::authenticated(&[&recipient], &url, false).await;
         let resp: Response<test_utils::Map> = client
             .post(
@@ -187,7 +187,7 @@ mod tests {
             .await
             .unwrap();
         let url = test_utils::init(crate::server::app(database)).await;
-        let SentRequest { sender, recipient } = send_friend_request(function!(), &url).await;
+        let SentRequest { sender, recipient } = send_friend_request(&function!(), &url).await;
         let client = Client::authenticated(&[&recipient], &url, false).await;
         let resp: Response<test_utils::Map> = client
             .post(
