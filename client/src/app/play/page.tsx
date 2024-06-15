@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import Square from "@/components/board/Square";
 import useWebSocket from "react-use-websocket";
 import cookie from "cookie";
+import cn from "classnames";
 import simpleGet from "@/lib/simpleGet";
 import call from "@/lib/call";
 
@@ -98,57 +99,78 @@ function LiveBoard({ gameId }: LiveBoardProps) {
     piece === Piece.Black ? "Black" : "White";
 
   return (
-    <main className="flex flex-row flex-wrap-reverse">
-      <section className="flex flex-col max-h-screen items-center p-5">
-        {board.map((arr, row) => (
-          <div className="flex flex-row" key={row}>
-            {arr.map((piece, col) => (
-              <Square
-                key={`${row}-${col}`}
-                piece={piece}
-                turn={turn}
-                color={color}
-                preview={preview?.some(([x, y]) => x === col && y === row)}
-                row={row}
-                col={col}
-                onMouseEnter={() => {
-                  sendJsonMessage({
-                    op: 7,
-                    t: token,
-                    d: {
-                      type: "Place",
-                      id: gameId,
-                      x: col,
-                      y: row,
-                      piece: stringifyPiece(color),
-                    },
-                  });
-                }}
-                onMouseLeave={() => {
-                  setPreview(undefined);
-                }}
-                onClick={() => {
-                  sendJsonMessage({
-                    op: 2,
-                    t: token,
-                    d: {
-                      type: "Place",
-                      id: gameId,
-                      x: col,
-                      y: row,
-                      piece: stringifyPiece(color),
-                    },
-                  });
-                }}
-              />
-            ))}
-          </div>
-        ))}
-      </section>
-      <section>
-        <p className="text-text pt-5">Turn: {turn === 0 ? "Black" : "White"}</p>
-        <p className="text-text pt-5">Game ID: {gameId}</p>
-      </section>
+    <main className="flex flex-col">
+      <p className="mx-auto">
+        You are playing with the {stringifyPiece(color)} pieces
+      </p>
+      <div className="flex flex-row">
+        <div className="mx-auto">
+          <div
+            className={cn(`bg-mantle border-2 w-12 h-[642px] ml-4 mt-5`, {
+              "bg-mantle": color === Piece.White,
+              "bg-[#09090b]": color === Piece.Black,
+              "border-mauve": turn === color,
+              "border-crust": turn !== color,
+            })}
+          />
+        </div>
+        <section className="flex flex-col  items-center p-5">
+          {board.map((arr, row) => (
+            <div className="flex flex-row" key={row}>
+              {arr.map((piece, col) => (
+                <Square
+                  key={`${row}-${col}`}
+                  piece={piece}
+                  turn={turn}
+                  color={color}
+                  preview={preview?.some(([x, y]) => x === col && y === row)}
+                  row={row}
+                  col={col}
+                  onMouseEnter={() => {
+                    sendJsonMessage({
+                      op: 7,
+                      t: token,
+                      d: {
+                        type: "Place",
+                        id: gameId,
+                        x: col,
+                        y: row,
+                        piece: stringifyPiece(color),
+                      },
+                    });
+                  }}
+                  onMouseLeave={() => {
+                    setPreview(undefined);
+                  }}
+                  onClick={() => {
+                    sendJsonMessage({
+                      op: 2,
+                      t: token,
+                      d: {
+                        type: "Place",
+                        id: gameId,
+                        x: col,
+                        y: row,
+                        piece: stringifyPiece(color),
+                      },
+                    });
+                  }}
+                />
+              ))}
+            </div>
+          ))}
+        </section>
+        <div className="mx-auto">
+          <div
+            className={cn(`bg-mantle border-2 w-12 h-[642px] ml-4 mt-5`, {
+              "bg-mantle": color === Piece.Black,
+              "bg-[#09090b]": color === Piece.White,
+              "border-mauve": turn !== color,
+              "border-crust": turn === color,
+            })}
+          />
+        </div>
+      </div>
     </main>
   );
 }
