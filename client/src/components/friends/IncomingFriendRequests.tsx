@@ -9,13 +9,20 @@ export default function IncomingFriendRequests() {
   const onClick = (sender: string, accept: boolean) => {
     return async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
       e.preventDefault();
-      const end = accept ? "accept" : "deny";
+      const action = accept ? "accept" : "deny";
+      const pastTense = accept ? "accept" : "deni";
       (async () => {
-        const res = await call(`/@me/friends/${sender}/${end}`, "POST");
+        const res = await call(`/@me/friends/${sender}/${action}`, "POST");
         if (res.status === 200) {
-          toast.success(`Friend request ${end}ed!`, TOAST_SUCCESS_OPTIONS);
+          toast.success(
+            `Friend request ${pastTense}ed!`,
+            TOAST_SUCCESS_OPTIONS
+          );
         } else {
-          toast.error(`Failed to ${end} friend request.`, TOAST_ERROR_OPTIONS);
+          toast.error(
+            `Failed to ${action} friend request.`,
+            TOAST_ERROR_OPTIONS
+          );
         }
       })();
     };
