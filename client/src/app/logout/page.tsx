@@ -1,10 +1,12 @@
 "use client";
 
 import { BASE_API_URL } from "@/lib";
+import useUser from "@/lib/hooks/useUser";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function Logout() {
+  const { mutate } = useUser();
   const [loggedOut, setLoggedOut] = useState(false);
   const [message, setMessage] = useState("You are being logged out...");
 
@@ -14,6 +16,7 @@ export default function Logout() {
       credentials: "include",
     }).then((res) => {
       if (res.status === 200) {
+        mutate();
         setLoggedOut(true);
         setMessage("You have been logged out.");
       } else {

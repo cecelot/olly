@@ -10,7 +10,7 @@ interface MeRoute {
 }
 
 export default function useUser() {
-  const { data, isLoading }: SWRResponse<MeRoute> = useSWR(
+  const { data, isLoading, mutate }: SWRResponse<MeRoute> = useSWR(
     `${BASE_API_URL}/@me`,
     async (url) => {
       const res = await fetch(url, {
@@ -26,5 +26,6 @@ export default function useUser() {
     authenticated: data?.code === 200,
     user: data?.message || null,
     isLoading,
+    mutate,
   };
 }
