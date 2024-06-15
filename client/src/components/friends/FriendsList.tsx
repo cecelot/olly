@@ -3,10 +3,7 @@
 import call from "@/lib/call";
 import { createGame } from "@/lib/createGame";
 import useFriends from "@/lib/hooks/useFriends";
-import simpleGet from "@/lib/simpleGet";
-import { Friend } from "@/types";
 import { Button } from "@headlessui/react";
-import { useState } from "react";
 
 export default function FriendsList() {
   const { isLoading, friends } = useFriends();
