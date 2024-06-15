@@ -12,11 +12,10 @@ export const createGame = async (opponent: string) => {
       guest: opponent,
     }),
   });
+  const { message } = await res.json();
   if (res.status === 201) {
-    const { message } = await res.json();
     window.location.href = `/play?gameId=${message.id}`;
   } else {
-    const { message } = await res.json();
     toast.error(message, TOAST_ERROR_OPTIONS);
   }
 };
