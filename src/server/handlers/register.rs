@@ -106,6 +106,8 @@ pub async fn register(
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use crate::server::{self, handlers::Response};
     use axum::http::StatusCode;
     use test_utils::function;
@@ -115,7 +117,9 @@ mod tests {
         let database = sea_orm::Database::connect(server::INSECURE_DEFAULT_DATABASE_URL)
             .await
             .unwrap();
-        let url = test_utils::init(crate::server::app(database)).await;
+        let redis = redis::Client::open(server::DEFAULT_REDIS_URL).unwrap();
+        let state = Arc::new(server::AppState::new(database, redis));
+        let url = test_utils::init(crate::server::app(state)).await;
         let client = test_utils::Client::authenticated(&[&function!()], &url, true).await;
         let credentials = serde_json::json!({
             "username": function!(),
@@ -131,7 +135,9 @@ mod tests {
         let database = sea_orm::Database::connect(server::INSECURE_DEFAULT_DATABASE_URL)
             .await
             .unwrap();
-        let url = test_utils::init(crate::server::app(database)).await;
+        let redis = redis::Client::open(server::DEFAULT_REDIS_URL).unwrap();
+        let state = Arc::new(server::AppState::new(database, redis));
+        let url = test_utils::init(crate::server::app(state)).await;
         let client = test_utils::Client::new();
         let credentials = serde_json::json!({
             "username": function!(),

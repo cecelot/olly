@@ -44,6 +44,8 @@ pub async fn login(
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use crate::server;
     use test_utils::{function, Client};
 
@@ -52,7 +54,9 @@ mod tests {
         let database = sea_orm::Database::connect(server::INSECURE_DEFAULT_DATABASE_URL)
             .await
             .unwrap();
-        let url = test_utils::init(crate::server::app(database)).await;
+        let redis = redis::Client::open(server::DEFAULT_REDIS_URL).unwrap();
+        let state = Arc::new(server::AppState::new(database, redis));
+        let url = test_utils::init(crate::server::app(state)).await;
         let client = Client::authenticated(&[&function!()], &url, true).await;
         let res: serde_json::Value = client.get(&url, "/@me").await;
         assert_eq!(&res["code"], &200);

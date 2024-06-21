@@ -10,6 +10,7 @@ use crate::{
 };
 use axum::{extract::ws::Message, http::StatusCode};
 use futures::Future;
+use redis::Commands;
 use sea_orm::EntityTrait;
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
@@ -155,6 +156,12 @@ impl Packet {
             EventKind::GameUpdate,
             EventData::GameUpdate { game: game.clone() },
         ));
+        if let Ok(mut conn) = state.redis.get_connection() {
+            let _ = conn.set::<String, String, String>(
+                format!("game:{}", id.clone()),
+                serde_json::to_string(game).unwrap(),
+            );
+        }
         Ok(res)
     }
 

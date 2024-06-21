@@ -24,3 +24,4 @@ It is recommended to use the Nix development shell at the root of this repositor
 ## Environment Variables
 
 - `DATABASE_URL` (default: `postgres://olly:password@0.0.0.0:5432/olly`) - specifies the address of the PostgreSQL database
+- `REDIS_URL` (default: `redis://0.0.0.0`) - specifies the address of the Redis server

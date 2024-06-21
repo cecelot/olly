@@ -166,6 +166,8 @@ pub async fn cancel(
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use crate::server::{self, handlers::Response};
     use axum::http::StatusCode;
     use test_utils::{function, Client};
@@ -195,7 +197,9 @@ mod tests {
         let database = sea_orm::Database::connect(server::INSECURE_DEFAULT_DATABASE_URL)
             .await
             .unwrap();
-        let url = test_utils::init(crate::server::app(database)).await;
+        let redis = redis::Client::open(server::DEFAULT_REDIS_URL).unwrap();
+        let state = Arc::new(server::AppState::new(database, redis));
+        let url = test_utils::init(crate::server::app(state)).await;
         send_friend_request(&function!(), &url).await;
     }
 
@@ -204,7 +208,9 @@ mod tests {
         let database = sea_orm::Database::connect(server::INSECURE_DEFAULT_DATABASE_URL)
             .await
             .unwrap();
-        let url = test_utils::init(crate::server::app(database)).await;
+        let redis = redis::Client::open(server::DEFAULT_REDIS_URL).unwrap();
+        let state = Arc::new(server::AppState::new(database, redis));
+        let url = test_utils::init(crate::server::app(state)).await;
         let SentRequest { sender, recipient } = send_friend_request(&function!(), &url).await;
         let client = Client::authenticated(&[&recipient], &url, false).await;
         let resp: Response<test_utils::Map> = client
@@ -222,7 +228,9 @@ mod tests {
         let database = sea_orm::Database::connect(server::INSECURE_DEFAULT_DATABASE_URL)
             .await
             .unwrap();
-        let url = test_utils::init(crate::server::app(database)).await;
+        let redis = redis::Client::open(server::DEFAULT_REDIS_URL).unwrap();
+        let state = Arc::new(server::AppState::new(database, redis));
+        let url = test_utils::init(crate::server::app(state)).await;
         let SentRequest { sender, recipient } = send_friend_request(&function!(), &url).await;
         let client = Client::authenticated(&[&recipient], &url, false).await;
         let resp: Response<test_utils::Map> = client

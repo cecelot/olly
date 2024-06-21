@@ -1,7 +1,7 @@
 use super::StringError;
-use crate::{
-    server::{entities::game::Column, extractors::User, helpers, state::AppState, strings},
-    Game,
+use crate::server::{
+    create_in_memory_game, entities::game::Column, extractors::User, helpers, state::AppState,
+    strings,
 };
 use axum::{
     body::Body,
@@ -12,7 +12,6 @@ use axum::{
 use sea_orm::{ActiveModelTrait, IntoActiveModel, ModelTrait, Value};
 use serde_json::json;
 use std::{str::FromStr, sync::Arc};
-use tokio::sync::broadcast;
 use uuid::Uuid;
 
 /// Retrieve the details for the specified game.
@@ -94,16 +93,8 @@ pub async fn accept(
             .save(state.database.as_ref())
             .await
             .map_err(|e| StringError(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
-        // Create a new game object and broadcast channel for notifications to websocket
-        // subscribers.
-        let game = Game::new();
         let gid = Uuid::from_str(&id).unwrap();
-        let (tx, _) = broadcast::channel(16);
-        // Insert the game object and broadcast channel into the global state.
-        let mut games = state.games.lock().expect("mutex was poisoned");
-        let mut rooms = state.rooms.lock().expect("mutex was poisoned");
-        games.insert(gid, game);
-        rooms.insert(gid, tx);
+        create_in_memory_game(&state, gid);
         Ok(super::Response::new(json!({}), StatusCode::OK))
     } else {
         // Otherwise, pretend the game does not exist.
