@@ -1,5 +1,5 @@
 use super::StringError;
-use crate::server::{entities::game, extractors::User, helpers, state::AppState};
+use crate::server::{entities::game, extractors::User, helpers, state::AppState, strings};
 use axum::{
     body::Body,
     extract::State,
@@ -28,6 +28,12 @@ pub async fn create(
     // ensure that they exist.
     let host = helpers::get_user(&state, &host.username, true).await?;
     let guest = helpers::get_user(&state, &body.guest, true).await?;
+    // A user can't create a game with themself.
+    if host.id == guest.id {
+        return Err(
+            StringError(strings::GAME_SELF.to_string(), StatusCode::BAD_REQUEST).into_response(),
+        );
+    }
     // Create a new game record and insert it into the database.
     let id = Uuid::now_v7();
     let model = game::ActiveModel {

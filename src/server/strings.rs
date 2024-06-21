@@ -7,6 +7,7 @@ pub const INVALID_USERNAME: &str =
     "That user doesn't exist! Make sure their username is spelled correctly.";
 pub const ALREADY_FRIENDS: &str = "You're already friends with that user!";
 pub const FRIEND_SELF: &str = "You can't friend yourself!";
+pub const GAME_SELF: &str = "You can't create a game with yourself!";
 
 // -- internal --
 pub const FRIEND_REQUEST_ALREADY_SENT: &str = "friend request already sent";
