@@ -7,6 +7,7 @@ export enum Piece {
 
 export interface Game {
   id: string;
+  host: string;
   opponent: string;
 }
 

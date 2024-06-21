@@ -13,11 +13,11 @@ mod register;
 
 pub use companion::companion;
 pub use create::create;
-pub use game::game;
+pub use game::{accept as accept_game, cancel as cancel_invite, decline as decline_game, game};
 pub use live::callback;
 pub use login::login;
 pub use logout::logout;
-pub use me::{friends, games, incoming, me, outgoing, remove_friend};
+pub use me::{active_games, friends, incoming, me, outgoing, pending_games, remove_friend};
 pub use register::register;
 
 #[derive(Debug, Serialize, Deserialize)]

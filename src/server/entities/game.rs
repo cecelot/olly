@@ -9,6 +9,7 @@ pub struct Model {
     pub id: Uuid,
     pub host: String,
     pub guest: String,
+    pub pending: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -90,10 +90,15 @@ function LiveBoard({ gameId }: LiveBoardProps) {
         const { host } = await simpleGet(`/game/${gameId}`);
         const { id } = await simpleGet("/@me");
         setColor(host === id ? Piece.Black : Piece.White);
+        // This actually makes it look smoother, IMO, because the flash isn't as abrupt and disorienting.
+        setTimeout(() => {
+          setSetup(true);
+        }, 500);
       })();
-      setSetup(true);
     }
-  }, [ready, gameId, token, setup, sendJsonMessage]);
+  }, [ready, gameId, token, color, setup, sendJsonMessage]);
+
+  if (!setup) return <StatusText text="Loading..." />;
 
   const stringifyPiece = (piece: Piece) =>
     piece === Piece.Black ? "Black" : "White";
@@ -106,7 +111,7 @@ function LiveBoard({ gameId }: LiveBoardProps) {
       <div className="flex flex-row">
         <div className="mx-auto">
           <div
-            className={cn(`bg-mantle border-2 w-12 h-[642px] ml-4 mt-5`, {
+            className={cn(`border-2 w-12 h-[642px] ml-4 mt-5`, {
               "bg-mantle": color === Piece.White,
               "bg-[#09090b]": color === Piece.Black,
               "border-mauve": turn === color,
@@ -162,7 +167,7 @@ function LiveBoard({ gameId }: LiveBoardProps) {
         </section>
         <div className="mx-auto">
           <div
-            className={cn(`bg-mantle border-2 w-12 h-[642px] ml-4 mt-5`, {
+            className={cn(`border-2 w-12 h-[642px] ml-4 mt-5`, {
               "bg-mantle": color === Piece.Black,
               "bg-[#09090b]": color === Piece.White,
               "border-mauve": turn !== color,
@@ -200,7 +205,8 @@ export default function Play() {
     (async () => {
       const game = await call(`/game/${id}`, "GET");
       setVerifying(false);
-      if (game.status !== 200) {
+      const { message } = await game.json();
+      if (game.status !== 200 || message.pending) {
         setIsValidGame(false);
       }
     })();

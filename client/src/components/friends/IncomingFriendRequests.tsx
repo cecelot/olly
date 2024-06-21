@@ -9,8 +9,8 @@ export default function IncomingFriendRequests() {
   const onClick = (sender: string, accept: boolean) => {
     return async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
       e.preventDefault();
-      const action = accept ? "accept" : "deny";
-      const pastTense = accept ? "accept" : "deni";
+      const action = accept ? "accept" : "decline";
+      const pastTense = accept ? "accept" : "declin";
       (async () => {
         const res = await call(`/@me/friends/${sender}/${action}`, "POST");
         if (res.status === 200) {
@@ -47,7 +47,7 @@ export default function IncomingFriendRequests() {
           onClick={onClick(request.sender, false)}
           className="text-mauve hover:text-pink transition-all"
         >
-          {"["}Deny{"]"}
+          {"["}Decline{"]"}
         </button>
       </li>
     ))

@@ -2,7 +2,7 @@ use crate::server::{
     entities::{
         friend::Column as FriendColumn,
         friend_request::Column as FriendRequestColumn,
-        game::Column as GameColumn,
+        game::{Column as GameColumn, Model},
         prelude::{Friend, FriendRequest, Game},
     },
     extractors::User,
@@ -26,7 +26,7 @@ pub async fn me(user: User) -> Result<impl IntoResponse, Response> {
 }
 
 /// Fetch the games the current user is participating in.
-pub async fn games(
+pub async fn active_games(
     State(state): State<Arc<AppState>>,
     user: User,
 ) -> Result<impl IntoResponse, Response> {
@@ -34,24 +34,34 @@ pub async fn games(
         .filter(
             GameColumn::Host
                 .eq(user.id.to_string())
-                .or(GameColumn::Guest.eq(user.id.to_string())),
+                .or(GameColumn::Guest.eq(user.id.to_string()))
+                // Include only games that are active here, not pending games.
+                // Pending games are on a separate endpoint.
+                .and(GameColumn::Pending.eq(false)),
         )
         .all(state.database.as_ref())
         .await
         .map_err(|e| StringError(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
-    let mut resp = vec![];
-    for g in &games {
-        let id = if user.id.to_string() == g.host {
-            &g.guest
-        } else {
-            &g.host
-        };
-        let opponent = helpers::get_user(&state, id, false).await?;
-        resp.push(json!({
-            "id": g.id,
-            "opponent": opponent.username
-        }));
-    }
+    let resp = create_games_resp(state, &user, games).await?;
+    Ok(super::Response::new(resp, StatusCode::OK))
+}
+
+/// Fetch the games the current user is currently awaiting a response for.
+pub async fn pending_games(
+    State(state): State<Arc<AppState>>,
+    user: User,
+) -> Result<impl IntoResponse, Response> {
+    let games = Game::find()
+        .filter(
+            GameColumn::Host
+                .eq(user.id.to_string())
+                .or(GameColumn::Guest.eq(user.id.to_string()))
+                .and(GameColumn::Pending.eq(true)),
+        )
+        .all(state.database.as_ref())
+        .await
+        .map_err(|e| StringError(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
+    let resp = create_games_resp(state, &user, games).await?;
     Ok(super::Response::new(resp, StatusCode::OK))
 }
 
@@ -152,6 +162,29 @@ pub async fn remove_friend(
         json!({ "affected": result.rows_affected }),
         StatusCode::OK,
     ))
+}
+
+async fn create_games_resp(
+    state: Arc<AppState>,
+    user: &User,
+    games: Vec<Model>,
+) -> Result<Vec<serde_json::Value>, Response> {
+    let mut resp = vec![];
+    for g in &games {
+        let id = if user.id.to_string() == g.host {
+            &g.guest
+        } else {
+            &g.host
+        };
+        let host = helpers::get_user(&state, g.host.as_str(), false).await?;
+        let opponent = helpers::get_user(&state, id, false).await?;
+        resp.push(json!({
+            "id": g.id,
+            "host": host.username,
+            "opponent": opponent.username
+        }));
+    }
+    Ok(resp)
 }
 
 #[cfg(test)]

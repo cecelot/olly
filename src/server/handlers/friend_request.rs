@@ -92,7 +92,7 @@ pub async fn send(
 }
 
 /// Reply to a friend request with the specified outcome.
-/// `outcome` must be either "accept" or "reject".
+/// `outcome` must be either "accept" or "decline".
 pub async fn reply(
     State(state): State<Arc<AppState>>,
     user: User,

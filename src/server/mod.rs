@@ -52,7 +52,23 @@ pub fn app(database: DatabaseConnection) -> Router {
         .route("/@me", get(handlers::me).with_state(Arc::clone(&state)))
         .route(
             "/@me/games",
-            get(handlers::games).with_state(Arc::clone(&state)),
+            get(handlers::active_games).with_state(Arc::clone(&state)),
+        )
+        .route(
+            "/@me/games/pending",
+            get(handlers::pending_games).with_state(Arc::clone(&state)),
+        )
+        .route(
+            "/@me/games/:id/cancel",
+            delete(handlers::cancel_invite).with_state(Arc::clone(&state)),
+        )
+        .route(
+            "/@me/games/:id/accept",
+            post(handlers::accept_game).with_state(Arc::clone(&state)),
+        )
+        .route(
+            "/@me/games/:id/decline",
+            delete(handlers::decline_game).with_state(Arc::clone(&state)),
         )
         .route(
             "/@me/friends",

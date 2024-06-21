@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@headlessui/react";
 import GameList from "@/components/GameList";
+import PendingGameList from "@/components/PendingGameList";
 
 export default async function Home() {
   return (
@@ -24,6 +25,9 @@ export default async function Home() {
         </div>
       </section>
       <GameList />
+      <br />
+      <PendingGameList />
+      <div className="mb-10"></div>
     </main>
   );
 }

@@ -1,8 +1,5 @@
 use super::StringError;
-use crate::{
-    server::{entities::game, extractors::User, helpers, state::AppState},
-    Game,
-};
+use crate::server::{entities::game, extractors::User, helpers, state::AppState};
 use axum::{
     body::Body,
     extract::State,
@@ -14,7 +11,6 @@ use sea_orm::{ActiveModelTrait, ActiveValue};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
-use tokio::sync::broadcast;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -38,25 +34,18 @@ pub async fn create(
         id: ActiveValue::set(id),
         host: ActiveValue::set(host.id.to_string()),
         guest: ActiveValue::set(guest.id.to_string()),
+        pending: ActiveValue::set(true),
     };
     model
         .insert(state.database.as_ref())
         .await
         .map_err(|e| StringError(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
-    // Create a new game object and broadcast channel for notifications to websocket
-    // subscribers.
-    let game = Game::new();
-    let (tx, _) = broadcast::channel(16);
-    // Insert the game object and broadcast channel into the global state.
-    let mut games = state.games.lock().expect("mutex was poisoned");
-    let mut rooms = state.rooms.lock().expect("mutex was poisoned");
-    games.insert(id, game);
-    rooms.insert(id, tx);
     Ok(super::Response::new(
         json!({
             "id": id,
             "host": host.id,
             "guest": guest.id,
+            "pending": true
         }),
         StatusCode::CREATED,
     ))
