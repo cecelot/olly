@@ -56,12 +56,14 @@ export default function Login() {
       <h1 className="text-3xl font-semibold mb-5">Login</h1>
       <form className="flex flex-col mx-auto space-y-3 max-w-60">
         <ErrorableFormInput
+          name="username"
           placeholder="Username"
           type="text"
           setText={setUsername}
           errorText={usernameError}
         />
         <ErrorableFormInput
+          name="password"
           placeholder="Password"
           type="password"
           setText={setPassword}

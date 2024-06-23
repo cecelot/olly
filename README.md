@@ -16,7 +16,7 @@ It is recommended to use the Nix development shell at the root of this repositor
 
 ### Testing
 
-**Frontend:** Nothing automated yet.
+**Frontend:** Use `cypress` e2e test runner (`npm run test`). After each subsequent execution, `sea-orm-cli migrate fresh` must be run to ensure that app state is refreshed to defaults. Otherwise, some tests may fail.
 
 **Backend:** Use Cargo's built in runner (`cargo test`). After each subsequent execution, `sea-orm-cli migrate fresh` must be run to ensure that app state is refreshed to defaults. Otherwise, some tests may fail.
 
