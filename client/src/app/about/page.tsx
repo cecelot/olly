@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function About() {
   return (
-    <main className="text-center mx-auto p-5 max-w-md leading-8 space-y-5">
+    <main className="text-center text-text mx-auto p-5 max-w-md leading-8 space-y-5">
       <p>
         Olly is a free and open source game client and server for{" "}
         <a
