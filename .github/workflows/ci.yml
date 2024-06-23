@@ -32,6 +32,7 @@ jobs:
           nix develop -c docker compose up -d
           cd client
           nix develop -c npm i
+          nix develop -c npm run build
           nix develop -c npm run test
       - name: Upload cypress e2e results
         uses: actions/upload-artifact@v4
