@@ -17,7 +17,10 @@ pub use game::{accept as accept_game, cancel as cancel_invite, decline as declin
 pub use live::callback;
 pub use login::login;
 pub use logout::logout;
-pub use me::{active_games, friends, incoming, me, outgoing, pending_games, remove_friend};
+pub use me::{
+    active_games, friends, incoming, me, outgoing, pending_games, remove_friend,
+    update as update_me,
+};
 pub use register::register;
 
 #[derive(Debug, Serialize, Deserialize)]

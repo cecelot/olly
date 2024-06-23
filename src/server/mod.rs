@@ -4,10 +4,11 @@ use argon2::PasswordHash;
 use axum::{
     extract::{ws::WebSocketUpgrade, State},
     http::StatusCode,
-    routing::{delete, get, post},
+    routing::{delete, get, patch, post},
     Router,
 };
 use entities::game::Column;
+use handlers::StringError;
 use redis::Commands;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use std::sync::Arc;
@@ -57,6 +58,10 @@ pub fn app(state: Arc<AppState>) -> Router {
             post(handlers::friend_request::send).with_state(Arc::clone(&state)),
         )
         .route("/@me", get(handlers::me).with_state(Arc::clone(&state)))
+        .route(
+            "/@me",
+            patch(handlers::update_me).with_state(Arc::clone(&state)),
+        )
         .route(
             "/@me/games",
             get(handlers::active_games).with_state(Arc::clone(&state)),
@@ -147,6 +152,56 @@ pub async fn restore_active_games(state: &Arc<AppState>) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     for game in &games {
         create_in_memory_game(state, game.id);
+    }
+    Ok(())
+}
+
+/// Validates a username according to the following rules:
+/// - At least three characters long
+/// # Errors
+/// The username does not meet the above criteria.
+pub fn validate_username(username: &str) -> Result<(), StringError> {
+    // Ensure that the username is at least 3 characters long. Totally arbitrary.
+    if username.len() < 3 {
+        return Err(StringError(
+            strings::USERNAME_TOO_SHORT.into(),
+            StatusCode::BAD_REQUEST,
+        ));
+    }
+    Ok(())
+}
+
+/// Validates a password according to the following rules:
+/// - At least 8 characters long
+/// - Contains at least one alphabetic character
+/// - Contains at least one numeric character
+/// # Errors
+/// The password does not meet the above criteria.
+pub fn validate_password(password: &str) -> Result<(), StringError> {
+    // Make sure that the password is at least 8 characters long. Protects against grossly insecure
+    // passwords while not being too annoying for uncaring users.
+    if password.len() < 8 {
+        return Err(StringError(
+            strings::PASSWORD_TOO_SHORT.into(),
+            StatusCode::BAD_REQUEST,
+        ));
+    }
+    // Ensure that the password contains at least one alphabetic character and one number.
+    // An additional check to ensure the password isn't horribly insecure.
+    match password {
+        _ if !password.contains(|c: char| c.is_alphabetic()) => {
+            return Err(StringError(
+                strings::PASSWORD_NO_ALPHA.into(),
+                StatusCode::BAD_REQUEST,
+            ));
+        }
+        _ if !password.contains(|c: char| c.is_numeric()) => {
+            return Err(StringError(
+                strings::PASSWORD_NO_NUMERIC.into(),
+                StatusCode::BAD_REQUEST,
+            ));
+        }
+        _ => {}
     }
     Ok(())
 }

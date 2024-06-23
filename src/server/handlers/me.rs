@@ -3,26 +3,122 @@ use crate::server::{
         friend::Column as FriendColumn,
         friend_request::Column as FriendRequestColumn,
         game::{Column as GameColumn, Model},
+        member::Column,
         prelude::{Friend, FriendRequest, Game},
     },
     extractors::User,
     handlers::StringError,
     helpers,
     state::AppState,
-    strings,
+    strings, validate_password, validate_username,
+};
+use argon2::{
+    password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
+    Argon2,
 };
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
+    Json,
 };
-use sea_orm::{ColumnTrait, EntityTrait, ModelTrait, QueryFilter};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, ModelTrait, QueryFilter, Value,
+};
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdatePasswordRequest {
+    current: String,
+    new: String,
+    confirmed: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateMeRequest {
+    username: Option<String>,
+    password: Option<UpdatePasswordRequest>,
+}
 
 /// Fetch the current user's information.
 pub async fn me(user: User) -> Result<impl IntoResponse, Response> {
     Ok(user)
+}
+
+pub async fn update(
+    State(state): State<Arc<AppState>>,
+    user: User,
+    Json(body): Json<UpdateMeRequest>,
+) -> Result<impl IntoResponse, Response> {
+    let stored = helpers::get_user(&state, &user.id.to_string(), false).await?;
+    match body {
+        UpdateMeRequest {
+            username: Some(username),
+            password: None,
+        } => {
+            validate_username(username.as_str())?;
+            // Check if the username is already taken.
+            if helpers::get_user(&state, &username, true).await.is_ok() {
+                return Err(
+                    StringError(strings::USERNAME_TAKEN.into(), StatusCode::CONFLICT)
+                        .into_response(),
+                );
+            }
+            let mut active = stored.into_active_model();
+            active.set(
+                Column::Username,
+                Value::String(Some(Box::new(username.to_string()))),
+            );
+            active
+                .save(state.database.as_ref())
+                .await
+                .map_err(|e| StringError(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
+            Ok(super::Response::new(json!({}), StatusCode::OK))
+        }
+        UpdateMeRequest {
+            username: None,
+            password:
+                Some(UpdatePasswordRequest {
+                    current,
+                    new,
+                    confirmed,
+                }),
+        } => {
+            if new != confirmed {
+                return Err(StringError(
+                    strings::PASSWORD_MISMATCH.into(),
+                    StatusCode::BAD_REQUEST,
+                )
+                .into_response());
+            }
+            helpers::ensure_valid_password(&stored.password, &current)?;
+            validate_password(confirmed.as_str())?;
+            let salt = SaltString::generate(&mut OsRng);
+            let argon2 = Argon2::default();
+            let hashed = argon2
+                .hash_password(new.as_bytes(), &salt)
+                .map_err(|_| {
+                    StringError(
+                        strings::INVALID_PASSWORD_FORMAT.to_string(),
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                    )
+                })
+                .map(|hashed| hashed.to_string())?;
+            let mut active = stored.into_active_model();
+            active.set(
+                Column::Password,
+                Value::String(Some(Box::new(hashed.to_string()))),
+            );
+            active
+                .save(state.database.as_ref())
+                .await
+                .map_err(|e| StringError(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
+            Ok(super::Response::new(json!({}), StatusCode::OK))
+        }
+        _ => Err(StringError(strings::BAD_REQUEST.into(), StatusCode::BAD_REQUEST).into_response()),
+    }
 }
 
 /// Fetch the games the current user is participating in.

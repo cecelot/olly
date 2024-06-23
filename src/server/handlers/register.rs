@@ -3,7 +3,7 @@ use crate::server::{
     entities::{member, prelude::*},
     handlers::Response,
     state::AppState,
-    strings,
+    strings, validate_password, validate_username,
 };
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
@@ -41,34 +41,8 @@ pub async fn register(
             StatusCode::BAD_REQUEST,
         )
     })?;
-    // Ensure that the username is at least 3 characters long. Totally arbitrary.
-    if username.len() < 3 {
-        return Err(
-            StringError(strings::USERNAME_TOO_SHORT.into(), StatusCode::BAD_REQUEST).into(),
-        );
-    }
-    // Make sure that the password is at least 8 characters long. Protects against grossly insecure
-    // passwords while not being too annoying for uncaring users.
-    if password.len() < 8 {
-        return Err(
-            StringError(strings::PASSWORD_TOO_SHORT.into(), StatusCode::BAD_REQUEST).into(),
-        );
-    }
-    // Ensure that the password contains at least one alphabetic character and one number.
-    // An additional check to ensure the password isn't horribly insecure.
-    match password {
-        _ if !password.contains(|c: char| c.is_alphabetic()) => {
-            return Err(
-                StringError(strings::PASSWORD_NO_ALPHA.into(), StatusCode::BAD_REQUEST).into(),
-            );
-        }
-        _ if !password.contains(|c: char| c.is_numeric()) => {
-            return Err(
-                StringError(strings::PASSWORD_NO_NUMERIC.into(), StatusCode::BAD_REQUEST).into(),
-            );
-        }
-        _ => {}
-    }
+    validate_username(&username)?;
+    validate_password(&password)?;
     let id = Uuid::now_v7();
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
@@ -108,7 +82,7 @@ pub async fn register(
 mod tests {
     use std::sync::Arc;
 
-    use crate::server::{self, handlers::Response};
+    use crate::server::{self, handlers::Response, strings};
     use axum::http::StatusCode;
     use test_utils::function;
 
@@ -127,7 +101,7 @@ mod tests {
         });
         let resp: Response<String> = client.post(&url, "/register", credentials).await;
         assert_eq!(resp.code, StatusCode::CONFLICT);
-        assert_eq!(resp.message, "that username is already taken");
+        assert_eq!(resp.message, strings::USERNAME_TAKEN);
     }
 
     #[tokio::test]
