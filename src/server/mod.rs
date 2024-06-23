@@ -1,5 +1,4 @@
 use crate::Game;
-
 use argon2::PasswordHash;
 use axum::{
     extract::{ws::WebSocketUpgrade, State},
@@ -27,8 +26,8 @@ mod state;
 mod strings;
 
 /// This is highly insecure, but useful for development/testing.
-pub const INSECURE_DEFAULT_DATABASE_URL: &str = "postgres://olly:password@0.0.0.0:5432/olly";
-pub const DEFAULT_REDIS_URL: &str = "redis://0.0.0.0";
+pub const INSECURE_DEFAULT_DATABASE_URL: &str = "postgres://olly:password@db:5432/olly";
+pub const DEFAULT_REDIS_URL: &str = "redis://cache";
 
 pub fn app(state: Arc<AppState>) -> Router {
     Router::new()

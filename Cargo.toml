@@ -11,6 +11,10 @@ members = [
     "test-utils"
 ]
 
+[[bin]]
+name = "olly-server"
+path = "src/bin/main.rs"
+
 [lints.clippy]
 pedantic = "deny"
 
