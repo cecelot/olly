@@ -2,6 +2,9 @@ services:
   server:
     build: .
     restart: always
+    depends_on:
+      - db
+      - cache
     ports:
       - 3000:3000
 
