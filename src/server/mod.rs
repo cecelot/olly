@@ -25,9 +25,13 @@ mod packet;
 mod state;
 mod strings;
 
-/// This is highly insecure, but useful for development/testing.
-pub const INSECURE_DEFAULT_DATABASE_URL: &str = "postgres://olly:password@db:5432/olly";
-pub const DEFAULT_REDIS_URL: &str = "redis://cache";
+pub const DEFAULT_DATABASE_URI: &str = "postgres://olly:password@db:5432/olly";
+pub const DEFAULT_REDIS_URI: &str = "redis://cache";
+
+#[cfg(test)]
+pub const TEST_DATABASE_URI: &str = "postgres://olly:password@localhost:5432/olly";
+#[cfg(test)]
+pub const TEST_REDIS_URI: &str = "redis://localhost";
 
 pub fn app(state: Arc<AppState>) -> Router {
     Router::new()

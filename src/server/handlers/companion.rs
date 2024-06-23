@@ -34,10 +34,10 @@ mod tests {
 
     #[tokio::test]
     async fn new() {
-        let database = sea_orm::Database::connect(server::INSECURE_DEFAULT_DATABASE_URL)
+        let database = sea_orm::Database::connect(server::TEST_DATABASE_URI)
             .await
             .unwrap();
-        let redis = redis::Client::open(server::DEFAULT_REDIS_URL).unwrap();
+        let redis = redis::Client::open(server::TEST_REDIS_URI).unwrap();
         let state = Arc::new(server::AppState::new(database, redis));
         let url = test_utils::init(crate::server::app(state)).await;
         let game = crate::Game::new();
