@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import useGames from "@/lib/hooks/useGames";
+import useUser from "@/lib/hooks/useUser";
 
 export default function GameList() {
+  const data = useUser();
   const { games, isLoading } = useGames();
 
   if (isLoading) return <></>;
@@ -28,7 +30,11 @@ export default function GameList() {
           </ul>
         ) : (
           <p className="text-subtext0">
-            No active games! Create one using the button above.
+            {data.user?.username ? (
+              <>No active games! Create one using the button above.</>
+            ) : (
+              <>Log in to view invites to games!</>
+            )}
           </p>
         )}
       </div>
