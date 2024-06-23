@@ -10,6 +10,7 @@ import {
 import { Board, Piece, Event } from "@/types";
 import { useEffect, useState } from "react";
 import Square from "@/components/board/Square";
+import StatusText from "@/components/StatusText";
 import useWebSocket from "react-use-websocket";
 import cookie from "cookie";
 import cn from "classnames";
@@ -176,20 +177,6 @@ function LiveBoard({ gameId }: LiveBoardProps) {
           />
         </div>
       </div>
-    </main>
-  );
-}
-
-interface StatusTextProps {
-  text: string;
-}
-
-function StatusText({ text }: StatusTextProps) {
-  return (
-    <main className="flex justify-center text-center">
-      <section className="flex flex-col max-h-screen items-center p-5">
-        <h1 className="text-text">{text}</h1>
-      </section>
     </main>
   );
 }
