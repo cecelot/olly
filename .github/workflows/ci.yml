@@ -1,4 +1,4 @@
-name: Rust
+name: CI
 on:
   pull_request:
   push:
@@ -29,3 +29,16 @@ jobs:
           nix develop -c docker compose up cache db -d
           nix develop -c cargo run --package migration up
           nix develop -c cargo test
+          nix develop -c docker compose up -d
+          cd client
+          nix develop -c npm i
+          nix develop -c npm run test
+      - name: Upload cypress e2e results
+        uses: actions/upload-artifact@v4
+        with:
+          name: "cypress-results"
+          path: "client/cypress/videos"
+          if-no-files-found: "error"
+          retention-days: 90
+          compression-level: 0
+          overwrite: true
