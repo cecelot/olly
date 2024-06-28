@@ -1,7 +1,17 @@
-FROM rust:1.78 as builder
+FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
+WORKDIR /app
 
-WORKDIR /usr/src/olly
+FROM chef AS planner
 COPY . .
-RUN cargo install --path .
+RUN cargo chef prepare --recipe-path recipe.json
 
-CMD [ "olly-server" ]
+FROM chef AS builder 
+COPY --from=planner /app/recipe.json recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
+COPY . .
+RUN cargo build --release --bin olly-server
+
+FROM debian:bookworm-slim AS runtime
+WORKDIR /app
+COPY --from=builder /app/target/release/olly-server /usr/local/bin
+ENTRYPOINT ["/usr/local/bin/olly-server"]
