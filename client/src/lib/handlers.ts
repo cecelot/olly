@@ -35,7 +35,7 @@ export function handleGameEnd(context: Context<GameEndEvent>) {
   if (!context.aborted) {
     context.setAborted(true);
     toast.success(
-      `${ev.d.winner} won the game with a score of ${ev.d.points} / ${ev.d.total}! Access the final scoreboard again any time from the Stats page.`,
+      `${ev.d.winner} won the game with a score of ${ev.d.points} / ${ev.d.total}! Access this board again any time from the Stats page.`,
       { duration: 10_000 },
     );
   }
