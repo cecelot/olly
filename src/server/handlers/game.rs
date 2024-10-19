@@ -37,6 +37,7 @@ pub async fn game(
                     "pending": game.pending,
                     "host": game.host,
                     "guest": game.guest,
+                    "ended": game.ended,
                 }),
                 StatusCode::OK,
             ))

@@ -41,6 +41,7 @@ pub async fn create(
         host: ActiveValue::set(host.id.to_string()),
         guest: ActiveValue::set(guest.id.to_string()),
         pending: ActiveValue::set(true),
+        ended: ActiveValue::set(false),
     };
     model
         .insert(state.database.as_ref())
@@ -51,7 +52,8 @@ pub async fn create(
             "id": id,
             "host": host.id,
             "guest": guest.id,
-            "pending": true
+            "pending": true,
+            "ended": false
         }),
         StatusCode::CREATED,
     ))

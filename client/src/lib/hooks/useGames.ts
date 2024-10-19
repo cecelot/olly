@@ -19,7 +19,7 @@ export default function useGames() {
       });
       const data = await res.json();
       return data;
-    }
+    },
   );
   return {
     isLoading,

@@ -11,6 +11,7 @@ pub const INVALID_USERNAME: &str =
 pub const ALREADY_FRIENDS: &str = "You're already friends with that user!";
 pub const FRIEND_SELF: &str = "You can't friend yourself!";
 pub const GAME_SELF: &str = "You can't create a game with yourself!";
+pub const RESERVED_OPCODE: &str = "Reserved opcode: no action";
 
 // -- internal --
 pub const BAD_REQUEST: &str = "bad request";

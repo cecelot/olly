@@ -7,6 +7,7 @@ import {
   handleGameUpdate,
   handlePreviewEvent,
   handleErrorEvent,
+  handleGameEnd,
 } from "@/lib/handlers";
 import { Board, Piece, Event } from "@/types";
 import { useEffect, useState } from "react";
@@ -57,6 +58,7 @@ function LiveBoard({ gameId }: LiveBoardProps) {
         4: handleGameUpdate,
         5: handlePreviewEvent,
         6: handleErrorEvent,
+        7: handleGameEnd,
       } as const;
       handlers[data.op]({
         //@ts-expect-error

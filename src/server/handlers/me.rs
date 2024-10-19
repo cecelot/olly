@@ -277,7 +277,8 @@ async fn create_games_resp(
         resp.push(json!({
             "id": g.id,
             "host": host.username,
-            "opponent": opponent.username
+            "opponent": opponent.username,
+            "ended": g.ended,
         }));
     }
     Ok(resp)

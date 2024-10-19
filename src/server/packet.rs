@@ -11,7 +11,7 @@ use crate::{
 use axum::{extract::ws::Message, http::StatusCode};
 use futures::Future;
 use redis::Commands;
-use sea_orm::EntityTrait;
+use sea_orm::{ActiveModelTrait, ActiveValue, EntityTrait, IntoActiveModel};
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::str::FromStr;
@@ -44,6 +44,9 @@ enum Data {
     Leave {
         id: String,
     },
+    End {
+        id: String,
+    },
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
@@ -53,7 +56,7 @@ enum Opcode {
     Place = 1 << 1,
     Join,
     Leave,
-    Ended,
+    Reserved,
     Identify,
     Preview,
 }
@@ -87,7 +90,10 @@ impl Packet {
                     .await
             }
             Opcode::Leave => self.authenticated(state, |p| p.leave(state)).await,
-            Opcode::Ended => todo!(),
+            Opcode::Reserved => Ok(Event::error(
+                strings::RESERVED_OPCODE,
+                StatusCode::BAD_REQUEST,
+            )),
         }
         .unwrap_or_else(std::convert::identity)
     }
@@ -141,6 +147,11 @@ impl Packet {
         self.ensure_participant(state, id).await?;
         let uuid = Uuid::from_str(id)
             .map_err(|_| Event::error(strings::INVALID_GAME_ID_FORMAT, StatusCode::BAD_REQUEST))?;
+        let metadata = self.game(state, id).await?;
+        // If the game is over, prevent action.
+        if metadata.ended {
+            return Err(Event::error(strings::BAD_REQUEST, StatusCode::BAD_REQUEST));
+        }
         // Delete the game from the database.
         GameModel::delete_by_id(uuid)
             .exec(state.database.as_ref())
@@ -168,31 +179,59 @@ impl Packet {
         };
         // Verify that the authenticated user is either the host or guest of the game.
         self.ensure_participant(state, id).await?;
-        let mut games = state.games.lock().expect("mutex was poisoned");
-        let mut rooms = state.rooms.lock().expect("mutex was poisoned");
+        let metadata = self.game(state, id).await?;
         let uuid = Uuid::from_str(id)
             .map_err(|_| Event::error(strings::INVALID_GAME_ID_FORMAT, StatusCode::BAD_REQUEST))?;
-        let game = games.get_mut(&uuid).ok_or(Event::error(
-            strings::INVALID_GAME_ID,
-            StatusCode::NOT_FOUND,
-        ))?;
-        let tx = rooms.get_mut(&uuid).ok_or(Event::error(
-            strings::INVALID_GAME_ID,
-            StatusCode::NOT_FOUND,
-        ))?;
-        let res = game.place(*x, *y, *piece).map_or_else(
-            |e| Err(Event::error(&e.to_string(), StatusCode::BAD_REQUEST)),
-            |()| Ok(Event::new(EventKind::Ack, EventData::Ack)),
-        )?;
-        let _ = tx.send(Event::new(
-            EventKind::GameUpdate,
-            EventData::GameUpdate { game: game.clone() },
-        ));
-        if let Ok(mut conn) = state.redis.get_connection() {
-            let _ = conn.set::<String, String, String>(
-                format!("game:{}", id.clone()),
-                serde_json::to_string(game).unwrap(),
-            );
+        let tx = {
+            let mut rooms = state.rooms.lock().expect("mutex was poisoned");
+            rooms
+                .get_mut(&uuid)
+                .ok_or(Event::error(
+                    strings::INVALID_GAME_ID,
+                    StatusCode::NOT_FOUND,
+                ))?
+                .clone()
+        };
+        let (res, mut game) = {
+            let mut games = state.games.lock().expect("mutex was poisoned");
+            let game = games.get_mut(&uuid).ok_or(Event::error(
+                strings::INVALID_GAME_ID,
+                StatusCode::NOT_FOUND,
+            ))?;
+            let res = game.place(*x, *y, *piece).map_or_else(
+                |e| Err(Event::error(&e.to_string(), StatusCode::BAD_REQUEST)),
+                |()| Ok(Event::new(EventKind::Ack, EventData::Ack)),
+            )?;
+            let _ = tx.send(Event::new(
+                EventKind::GameUpdate,
+                EventData::GameUpdate { game: game.clone() },
+            ));
+            if let Ok(mut conn) = state.redis.get_connection() {
+                let _ = conn.set::<String, String, String>(
+                    format!("game:{}", id.clone()),
+                    serde_json::to_string(game).unwrap(),
+                );
+            }
+            (res, game.clone())
+        };
+        if game.over() {
+            let (black, white) = game.score();
+            let winner = if black > white {
+                metadata.host.clone()
+            } else {
+                metadata.guest.clone()
+            };
+            let _ = tx.send(Event::new(
+                EventKind::GameEnd,
+                EventData::GameEnd {
+                    winner,
+                    points: black.max(white),
+                    total: black + white,
+                },
+            ));
+            let mut model = metadata.clone().into_active_model();
+            model.ended = ActiveValue::set(true);
+            let _ = model.save(state.database.as_ref()).await;
         }
         Ok(res)
     }
@@ -294,6 +333,7 @@ pub enum EventKind {
     GameUpdate = 1 << 2,
     GameUpdatePreview,
     Error,
+    GameEnd,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -301,11 +341,25 @@ pub enum EventKind {
 pub enum EventData {
     Ack,
     Ready,
-    GameCreate { id: String },
-    GameUpdate { game: Game },
-    GameUpdatePreview { changed: Vec<(usize, usize)> },
+    GameCreate {
+        id: String,
+    },
+    GameUpdate {
+        game: Game,
+    },
+    GameUpdatePreview {
+        changed: Vec<(usize, usize)>,
+    },
     GameAbort,
-    Error { message: String, code: u16 },
+    GameEnd {
+        winner: String,
+        points: usize,
+        total: usize,
+    },
+    Error {
+        message: String,
+        code: u16,
+    },
 }
 
 impl Event {

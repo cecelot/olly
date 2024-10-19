@@ -7,6 +7,7 @@ import {
   PreviewEvent,
   Context,
   GameAbortEvent,
+  GameEndEvent,
 } from "@/types";
 import toast from "react-hot-toast";
 
@@ -26,6 +27,17 @@ export function handleGameAbort(context: Context<GameAbortEvent>) {
     setTimeout(() => {
       window.location.href = "/";
     }, 5000);
+  }
+}
+
+export function handleGameEnd(context: Context<GameEndEvent>) {
+  const { ev } = context;
+  if (!context.aborted) {
+    context.setAborted(true);
+    toast.success(
+      `${ev.d.winner} won the game with a score of ${ev.d.points} / ${ev.d.total}! Access the final scoreboard again any time from the Stats page.`,
+      { duration: 10_000 },
+    );
   }
 }
 

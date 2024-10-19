@@ -9,6 +9,7 @@ export interface Game {
   id: string;
   host: string;
   opponent: string;
+  ended: boolean;
 }
 
 export interface Member {
@@ -74,13 +75,23 @@ export interface ErrorEvent {
   };
 }
 
+export interface GameEndEvent {
+  op: 7;
+  d: {
+    winner: string;
+    points: number;
+    total: number;
+  };
+}
+
 export type Event =
   | AckEvent
   | ReadyEvent
   | GameAbortEvent
   | GameUpdateEvent
   | ErrorEvent
-  | PreviewEvent;
+  | PreviewEvent
+  | GameEndEvent;
 
 export interface Context<T> {
   ws: WebSocket;
