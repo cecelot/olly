@@ -11,7 +11,7 @@ const inclusiveSans = Inclusive_Sans({
 
 export const metadata: Metadata = {
   title: "Othello",
-  description: "Play Othello online with friends or against the computer!",
+  description: "Play Othello online with friends!",
 };
 
 export default function RootLayout({

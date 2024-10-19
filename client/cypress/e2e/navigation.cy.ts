@@ -11,6 +11,6 @@ describe("Navigation", () => {
   it("should navigate to the home page", () => {
     cy.visit("/");
     cy.get("h1").contains("Othello");
-    cy.get("h2").contains("Play online with friends or against the computer!");
+    cy.get("h2").contains("Play online with friends!");
   });
 });
