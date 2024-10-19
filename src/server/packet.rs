@@ -224,7 +224,10 @@ impl Packet {
             let _ = tx.send(Event::new(
                 EventKind::GameEnd,
                 EventData::GameEnd {
-                    winner,
+                    winner: helpers::get_user(state, &winner, false)
+                        .await
+                        .unwrap()
+                        .username,
                     points: black.max(white),
                     total: black + white,
                 },

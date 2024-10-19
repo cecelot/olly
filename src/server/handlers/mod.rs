@@ -41,6 +41,7 @@ impl<S: Serialize> Response<S> {
     }
 }
 
+#[derive(Debug)]
 pub struct StringError(pub String, pub StatusCode);
 
 impl IntoResponse for StringError {
