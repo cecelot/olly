@@ -20,10 +20,9 @@ export function handleReady(context: Context<ReadyEvent>) {
 export function handleGameAbort(context: Context<GameAbortEvent>) {
   if (!context.aborted) {
     context.setAborted(true);
-    toast.success(
-      "Game aborted (the game will be deleted and no stats will be changed). Redirecting to home page...",
-      { duration: 5000 },
-    );
+    toast.success("Game aborted. Redirecting to home page...", {
+      duration: 5000,
+    });
     setTimeout(() => {
       window.location.href = "/";
     }, 5000);
@@ -35,7 +34,7 @@ export function handleGameEnd(context: Context<GameEndEvent>) {
   if (!context.aborted) {
     context.setAborted(true);
     toast.success(
-      `${ev.d.winner} won the game with a score of ${ev.d.points} / ${ev.d.total}! Access this board again any time from the Stats page.`,
+      `${ev.d.winner} won the game with a score of ${ev.d.points} / ${ev.d.total}!`,
       { duration: 10_000 },
     );
   }

@@ -16,12 +16,6 @@ export default function Navbar() {
           {"["}About{"]"}
         </Link>
         <Link
-          href="/stats"
-          className="text-mauve hover:text-pink transition-all"
-        >
-          {"["}Stats{"]"}
-        </Link>
-        <Link
           href={!isLoading && authenticated ? "/account" : "/login"}
           className="text-mauve hover:text-pink transition-all"
         >
