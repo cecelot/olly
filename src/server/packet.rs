@@ -41,6 +41,9 @@ enum Data {
     Join {
         id: String,
     },
+    Leave {
+        id: String,
+    },
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
@@ -50,7 +53,7 @@ enum Opcode {
     Place = 1 << 1,
     Join,
     Leave,
-    Reset,
+    Ended,
     Identify,
     Preview,
 }
@@ -83,8 +86,8 @@ impl Packet {
                 self.authenticated(state, |p| p.join(state, sender.expect("missing sender")))
                     .await
             }
-            Opcode::Leave => todo!(),
-            Opcode::Reset => todo!(),
+            Opcode::Leave => self.authenticated(state, |p| p.leave(state)).await,
+            Opcode::Ended => todo!(),
         }
         .unwrap_or_else(std::convert::identity)
     }
@@ -128,6 +131,35 @@ impl Packet {
             EventKind::GameUpdate,
             EventData::GameUpdate { game: game.clone() },
         ))
+    }
+
+    async fn leave(&self, state: &AppState) -> Result<Event, Event> {
+        let Data::Leave { id } = &self.d else {
+            panic!("expected serde to reject invalid packet data")
+        };
+        // Verify that the authenticated user is either the host or guest of the game.
+        self.ensure_participant(state, id).await?;
+        let uuid = Uuid::from_str(id)
+            .map_err(|_| Event::error(strings::INVALID_GAME_ID_FORMAT, StatusCode::BAD_REQUEST))?;
+        // Delete the game from the database.
+        GameModel::delete_by_id(uuid)
+            .exec(state.database.as_ref())
+            .await
+            .map_err(|e| Event::error(&e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))?;
+        let mut rooms = state.rooms.lock().expect("mutex was poisoned");
+        let tx = rooms.get_mut(&uuid).ok_or(Event::error(
+            strings::INVALID_GAME_ID,
+            StatusCode::NOT_FOUND,
+        ))?;
+        let _ = tx.send(Event::new(EventKind::GameAbort, EventData::GameAbort));
+        // Delete game and room from global state.
+        let mut games = state.games.lock().expect("mutex was poisoned");
+        games.remove(&uuid).ok_or(Event::error(
+            strings::INVALID_GAME_ID,
+            StatusCode::NOT_FOUND,
+        ))?;
+        rooms.remove(&uuid).unwrap();
+        Ok(Event::new(EventKind::Ack, EventData::Ack))
     }
 
     async fn place(&self, state: &AppState) -> Result<Event, Event> {
@@ -258,7 +290,7 @@ pub struct Event {
 pub enum EventKind {
     Ack = 1 << 0,
     Ready,
-    // GameCreate
+    GameAbort,
     GameUpdate = 1 << 2,
     GameUpdatePreview,
     Error,
@@ -272,6 +304,7 @@ pub enum EventData {
     GameCreate { id: String },
     GameUpdate { game: Game },
     GameUpdatePreview { changed: Vec<(usize, usize)> },
+    GameAbort,
     Error { message: String, code: u16 },
 }
 

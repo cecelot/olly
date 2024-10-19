@@ -6,11 +6,27 @@ import {
   ErrorEvent,
   PreviewEvent,
   Context,
+  GameAbortEvent,
 } from "@/types";
+import toast from "react-hot-toast";
+
 export function handleAckEvent(_: Context<AckEvent>) {}
 
 export function handleReady(context: Context<ReadyEvent>) {
   context.setReady(true);
+}
+
+export function handleGameAbort(context: Context<GameAbortEvent>) {
+  if (!context.aborted) {
+    context.setAborted(true);
+    toast.success(
+      "Game aborted (the game will be deleted and no stats will be changed). Redirecting to home page...",
+      { duration: 5000 },
+    );
+    setTimeout(() => {
+      window.location.href = "/";
+    }, 5000);
+  }
 }
 
 export function handleGameUpdate(context: Context<GameUpdateEvent>) {

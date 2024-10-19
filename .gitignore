@@ -5,3 +5,6 @@ target
 # Cypress
 screenshots
 videos
+
+# JetBrains
+**/.idea

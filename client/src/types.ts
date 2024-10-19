@@ -41,6 +41,14 @@ export interface ReadyEvent {
   };
 }
 
+export interface GameAbortEvent {
+  op: 3;
+  d: {
+    token: string;
+    id: string;
+  };
+}
+
 export interface GameUpdateEvent {
   op: 4;
   d: {
@@ -69,6 +77,7 @@ export interface ErrorEvent {
 export type Event =
   | AckEvent
   | ReadyEvent
+  | GameAbortEvent
   | GameUpdateEvent
   | ErrorEvent
   | PreviewEvent;
@@ -77,11 +86,13 @@ export interface Context<T> {
   ws: WebSocket;
   ev: T;
   board: Board;
-  token: string | undefined;
+  token?: string;
   gameId: string | null;
+  aborted?: boolean;
   setReady: (ready: boolean) => void;
   setTurn: (turn: Piece) => void;
   setBoard: (board: Board) => void;
   setColor: (color: Piece) => void;
+  setAborted: (aborted: boolean) => void;
   setPreview: (preview: Array<[number, number]> | undefined) => void;
 }

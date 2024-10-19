@@ -24,7 +24,7 @@ describe("Register", () => {
     cy.get("input[name=password]").type("password1");
     cy.get("button").click();
     cy.get("#username-error").contains(
-      "Username must be at least 3 characters."
+      "Username must be at least 3 characters.",
     );
   });
 
@@ -35,7 +35,7 @@ describe("Register", () => {
     cy.get("input[name=password]").type("pass");
     cy.get("button").click();
     cy.get("#password-error").contains(
-      "Password must be at least 8 characters."
+      "Password must be at least 8 characters.",
     );
   });
 
@@ -46,7 +46,7 @@ describe("Register", () => {
     cy.get("input[name=password]").type("password");
     cy.get("button").click();
     cy.get("#password-error").contains(
-      "Password must contain at least one number."
+      "Password must contain at least one number.",
     );
   });
 
@@ -57,7 +57,7 @@ describe("Register", () => {
     cy.get("input[name=password]").type("12345678");
     cy.get("button").click();
     cy.get("#password-error").contains(
-      "Password must contain at least one alphabetic character."
+      "Password must contain at least one alphabetic character.",
     );
   });
 });

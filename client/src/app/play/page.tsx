@@ -3,6 +3,7 @@
 import {
   handleAckEvent,
   handleReady,
+  handleGameAbort,
   handleGameUpdate,
   handlePreviewEvent,
   handleErrorEvent,
@@ -16,6 +17,7 @@ import cookie from "cookie";
 import cn from "classnames";
 import simpleGet from "@/lib/simpleGet";
 import call from "@/lib/call";
+import { Button } from "@headlessui/react";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -36,6 +38,7 @@ interface LiveBoardProps {
 }
 
 function LiveBoard({ gameId }: LiveBoardProps) {
+  const [aborted, setAborted] = useState(false);
   const [ready, setReady] = useState(false);
   const [setup, setSetup] = useState(false);
   const [board, setBoard] = useState<Board>(createBoard());
@@ -44,12 +47,13 @@ function LiveBoard({ gameId }: LiveBoardProps) {
   const [token, setToken] = useState<string>();
   const [preview, setPreview] = useState<Array<[number, number]>>();
 
-  const { sendJsonMessage } = useWebSocket("ws://0.0.0.0:3000/live", {
+  const { sendJsonMessage } = useWebSocket("ws://localhost:3000/live", {
     onMessage: (msg) => {
       const data: Event = JSON.parse(msg.data);
       const handlers = {
         1: handleAckEvent,
         2: handleReady,
+        3: handleGameAbort,
         4: handleGameUpdate,
         5: handlePreviewEvent,
         6: handleErrorEvent,
@@ -60,7 +64,9 @@ function LiveBoard({ gameId }: LiveBoardProps) {
         board,
         token,
         gameId,
+        aborted,
         setReady,
+        setAborted,
         setTurn,
         setBoard,
         setPreview,
@@ -109,6 +115,21 @@ function LiveBoard({ gameId }: LiveBoardProps) {
       <p className="mx-auto">
         You are playing with the {stringifyPiece(color)} pieces
       </p>
+      <Button
+        className="border-2 border-mantle mx-auto p-2 rounded-lg mt-2 hover:border-red transition-all"
+        onClick={() =>
+          sendJsonMessage({
+            op: 4,
+            t: token,
+            d: {
+              type: "Leave",
+              id: gameId,
+            },
+          })
+        }
+      >
+        Leave Game
+      </Button>
       <div className="flex flex-row">
         <div className="mx-auto">
           <div

@@ -10,6 +10,7 @@ pub struct Model {
     pub host: String,
     pub guest: String,
     pub pending: bool,
+    pub ended: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

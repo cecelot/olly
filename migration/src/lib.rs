@@ -9,6 +9,7 @@ mod m20240113_000006_non_null_guest;
 mod m20240527_185255_create_friends;
 mod m20240527_191255_create_friend_requests;
 mod m20240621_143622_invite_only_games;
+mod m20241019_164847_game_endings_and_stats;
 
 pub struct Migrator;
 
@@ -24,6 +25,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20240527_185255_create_friends::Migration),
             Box::new(m20240527_191255_create_friend_requests::Migration),
             Box::new(m20240621_143622_invite_only_games::Migration),
+            Box::new(m20241019_164847_game_endings_and_stats::Migration),
         ]
     }
 }

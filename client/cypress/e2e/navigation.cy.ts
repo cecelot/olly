@@ -4,7 +4,7 @@ describe("Navigation", () => {
     cy.get('a[href*="about"]').click();
     cy.url().should("include", "/about");
     cy.get("p").contains(
-      "Olly is a free and open source game client and server"
+      "Olly is a free and open source game client and server",
     );
   });
 
